@@ -40,12 +40,23 @@ header block.
 Produces a workbook with three sheets:
 
 - **This Week** (first tab) — same hierarchy as the main sheet, but scoped
-  to just the most recent week in the export, compared against the week
-  before it (spend, $ change, % change), and with any advertiser/market/
-  platform that spent nothing this week dropped entirely — this is "what's
-  running right now," not a historical view. "This week" is whatever the
-  last week column in the export is; re-run the generator against a fresh
-  export to roll it forward. Opens as the active tab.
+  to just the current media week, compared against the week before it
+  (spend, $ change, % change), with any advertiser/market/platform that
+  spent nothing this week dropped entirely — this is "what's running right
+  now," not a historical view. Opens as the active tab.
+
+  "This week" means the **Tuesday on or before today, in America/New
+  York** (GPS Impact's media-week convention — Tuesday through Monday),
+  not just whichever column happens to be rightmost in the export. Those
+  are only the same thing when the export is fully caught up to today; if
+  it's a day or two stale, or you're regenerating an old report, they
+  diverge. If the resolved week genuinely isn't in the export yet, the tab
+  shows a plain "no spending data available for this week yet" placeholder
+  instead of silently substituting some other week.
+
+  Override with `--current-week YYYY-MM-DD` (the Tuesday it starts on) to
+  pin a specific week — for regenerating a past week's report, or for
+  testing without waiting for a real Tuesday.
 - **Competitive Digital Report** — Candidate/Committee → Market → Type →
   Station/Platform, with a Total Spend column and one column per week.
   Subtotals roll up Market+Type, then CTV/Digital, then the advertiser, then
@@ -70,6 +81,7 @@ fabricate from spend).
 | `--spending` | *(required)* | Path to the AdImpact Spending Chart `.xlsx` |
 | `--output` | `competitive_report.xlsx` | Output path |
 | `--title` | derived | Overrides the report title |
+| `--current-week` | today's media week | Pins the This Week tab to a specific week (`YYYY-MM-DD`, the Tuesday it starts on) |
 
 ## `generate_report.py` (HTML dashboard)
 

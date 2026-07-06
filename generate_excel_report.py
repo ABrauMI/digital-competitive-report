@@ -19,6 +19,12 @@ def main():
     p.add_argument("--spending", required=True, help="Path to the AdImpact Spending Chart .xlsx export")
     p.add_argument("--output", default="competitive_report.xlsx", help="Where to write the rendered workbook")
     p.add_argument("--title", help="Override the report title (default: derived from the export's Race)")
+    p.add_argument(
+        "--current-week",
+        help='Pin the "This Week" tab to a specific media week (YYYY-MM-DD, the Tuesday it starts on) '
+             "instead of deriving it from today's date in America/New_York. Use this to regenerate a "
+             "past week's report or to test without waiting for a real Tuesday.",
+    )
     args = p.parse_args()
 
     week_cols, week_starts, leaf_rows, meta = parse.load_spending_export(args.spending)
@@ -30,8 +36,14 @@ def main():
         race = meta.get("race")
         title = f"{race.upper()} DIGITAL COMPETITIVE REPORT" if race else "DIGITAL COMPETITIVE REPORT"
 
-    write_excel_report(leaf_rows, index_map, week_labels, args.output, title=title, week_iso=week_iso)
+    this_week_iso = args.current_week or parse.current_media_week_iso()
+
+    write_excel_report(
+        leaf_rows, index_map, week_labels, args.output, title=title,
+        week_iso=week_iso, this_week_iso=this_week_iso,
+    )
     print(f"Wrote {args.output}")
+    print(f"  This Week tab: {this_week_iso}" + (" (not in export)" if this_week_iso not in week_iso else ""))
 
 
 if __name__ == "__main__":

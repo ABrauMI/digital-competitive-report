@@ -490,12 +490,11 @@ def _write_week_row(ws, row, label_col, label, this_val, prior_val, fill, bold, 
     return row + 1
 
 
-def _write_this_week_sheet(wb, tree, week_labels, week_iso, n_weeks):
+def _write_this_week_sheet(wb, tree, week_iso, this_idx):
     ws = wb.create_sheet("This Week", 0)
     ws.sheet_view.showGridLines = False
 
-    this_idx = n_weeks - 1
-    prior_idx = n_weeks - 2 if n_weeks > 1 else None
+    prior_idx = this_idx - 1 if this_idx > 0 else None
     week_start = datetime.strptime(week_iso[this_idx], "%Y-%m-%d")
     week_end = week_start + timedelta(days=6)
     week_range = f"{week_start.strftime('%B %d')} – {week_end.strftime('%B %d, %Y')}"
@@ -649,14 +648,47 @@ def _write_this_week_sheet(wb, tree, week_labels, week_iso, n_weeks):
     return ws
 
 
+def _write_no_data_week_sheet(wb, target_iso):
+    ws = wb.create_sheet("This Week", 0)
+    ws.sheet_view.showGridLines = False
+    ws.column_dimensions["A"].width = 60
+    ws.row_dimensions[1].height = 40
+
+    week_start = datetime.strptime(target_iso, "%Y-%m-%d")
+    week_end = week_start + timedelta(days=6)
+    week_range = f"{week_start.strftime('%B %d')} – {week_end.strftime('%B %d, %Y')}"
+
+    ws.merge_cells("A1:C1")
+    c = ws.cell(1, 1, f"THIS WEEK — {week_range}")
+    c.font = Font(name=FONT_NAME, bold=True, size=14, color="FFFFFF")
+    c.fill = _fill(NAVY)
+    c.alignment = Alignment(horizontal="left", vertical="center", indent=1)
+    for col in (2, 3):
+        ws.cell(1, col).fill = _fill(NAVY)
+
+    c2 = ws.cell(2, 1, "No spending data available for this week yet.")
+    c2.font = Font(name=FONT_NAME, italic=True, size=10, color=FOOTER_GRAY)
+    return ws
+
+
 def write_excel_report(leaf_rows, index_map, week_labels, output_path, title="DIGITAL COMPETITIVE REPORT",
-                        week_iso=None):
+                        week_iso=None, this_week_iso=None):
+    """`this_week_iso` is the target Tuesday (YYYY-MM-DD) to show on the
+    "This Week" tab — pass `parse.current_media_week_iso()` for "today's"
+    media week, or a specific date to pin a historical week. If that date
+    isn't present in the export, a placeholder tab is shown instead of
+    silently substituting some other week.
+    """
     n_weeks = len(week_labels)
     tree = build_hierarchy(leaf_rows, index_map, n_weeks)
     wb = Workbook()
     _write_main_sheet(wb, tree, week_labels, n_weeks, title)
     _write_market_summary_sheet(wb, tree, n_weeks)
-    if week_iso is not None:
-        _write_this_week_sheet(wb, tree, week_labels, week_iso, n_weeks)
+    if this_week_iso is not None and week_iso is not None:
+        this_idx = week_iso.index(this_week_iso) if this_week_iso in week_iso else None
+        if this_idx is not None:
+            _write_this_week_sheet(wb, tree, week_iso, this_idx)
+        else:
+            _write_no_data_week_sheet(wb, this_week_iso)
     wb.active = 0
     wb.save(output_path)

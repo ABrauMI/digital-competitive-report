@@ -10,8 +10,28 @@ every advertiser instead of keeping a fixed weekly grid).
 """
 import re
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 import openpyxl
+
+# Media-week convention (matches GPS Impact's linear/compbot reports):
+# Tuesday is the first day of the reporting week, Tuesday -> Monday, and
+# Eastern time governs the rollover regardless of where this runs.
+MEDIA_WEEK_TZ = ZoneInfo("America/New_York")
+
+
+def current_media_week_iso(now=None):
+    """ISO date (YYYY-MM-DD) of the Tuesday on or before `now`.
+
+    `now` is for tests; production uses the current America/New_York wall
+    clock. This is "this week" as GPS Impact's staff mean it, not whichever
+    week happens to be the rightmost column in a given export — those are
+    only the same thing when the export is fully caught up to today.
+    """
+    if now is None:
+        now = datetime.now(MEDIA_WEEK_TZ)
+    days_back = (now.isoweekday() - 2) % 7  # Mon=1 ... Sun=7; walk back to Tue
+    return (now - timedelta(days=days_back)).strftime("%Y-%m-%d")
 
 HIERARCHY_COLS = ("party", "atype", "advertiser", "market", "mediatype", "station")
 
