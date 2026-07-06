@@ -34,7 +34,7 @@ def main():
 
     week_cols, week_starts, leaf_rows, meta = parse.load_spending_export(args.spending)
     week_labels_short, week_iso, index_map = parse.build_continuous_week_axis(week_starts)
-    week_labels = [datetime.strptime(iso, "%Y-%m-%d").strftime("%B %d, %Y") for iso in week_iso]
+    week_labels = [datetime.strptime(iso, "%Y-%m-%d").strftime("%m/%d/%Y") for iso in week_iso]
 
     title = args.title
     if not title:
