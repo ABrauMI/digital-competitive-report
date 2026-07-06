@@ -12,6 +12,7 @@ Digital has no GRPs/CPP equivalent without a separate impressions export, so
 those columns are simply omitted for now — spend only, matching how far the
 underlying AdImpact export goes.
 """
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from openpyxl import Workbook
@@ -89,6 +90,40 @@ def _sum_lists(lists, n_weeks):
     for lst in lists:
         for i in range(n_weeks):
             out[i] += lst[i]
+    return out
+
+
+def _sum_pairs(pairs):
+    pairs = list(pairs)
+    return sum(p[0] for p in pairs), sum(p[1] for p in pairs)
+
+
+def _filter_this_week(tree, this_idx, prior_idx):
+    """Collapse the tree to (this_week, prior_week) leaf pairs, dropping any
+    branch with nothing spent this week — "what's happening" means active
+    now, not everything that's ever run."""
+    out = {}
+    for party, advertisers in tree.items():
+        adv_out = {}
+        for adv, markets in advertisers.items():
+            mk_out = {}
+            for market, types in markets.items():
+                tp_out = {}
+                for mtype, stations in types.items():
+                    st_out = {}
+                    for station, weekly in stations.items():
+                        this_val = weekly[this_idx]
+                        prior_val = weekly[prior_idx] if prior_idx is not None and prior_idx >= 0 else 0.0
+                        if this_val > 0:
+                            st_out[station] = (this_val, prior_val)
+                    if st_out:
+                        tp_out[mtype] = st_out
+                if tp_out:
+                    mk_out[market] = tp_out
+            if mk_out:
+                adv_out[adv] = mk_out
+        if adv_out:
+            out[party] = adv_out
     return out
 
 
@@ -426,10 +461,202 @@ def _write_market_summary_sheet(wb, tree, n_weeks):
     return ws
 
 
-def write_excel_report(leaf_rows, index_map, week_labels, output_path, title="DIGITAL COMPETITIVE REPORT"):
+CHANGE_CURRENCY = '+$#,##0;-$#,##0;$0'
+CHANGE_PERCENT = "+0.0%;-0.0%;0.0%"
+
+THIS_WEEK_HEADERS = [
+    "CANDIDATE / COMMITTEE", "MARKET", "TYPE", "STATION / PLATFORM",
+    "THIS WEEK", "PRIOR WEEK", "CHANGE ($)", "CHANGE (%)",
+]
+
+
+def _write_week_row(ws, row, label_col, label, this_val, prior_val, fill, bold, text_color, border, font_size=9):
+    font = Font(name=FONT_NAME, bold=bold, size=font_size, color=text_color)
+    for col in range(1, 9):
+        c = ws.cell(row, col)
+        c.fill = _fill(fill)
+        c.border = border
+        c.font = font
+    if label is not None:
+        ws.cell(row, label_col, label)
+    ws.cell(row, 5, this_val).number_format = TOTAL_CURRENCY
+    change = this_val - prior_val
+    ws.cell(row, 6, prior_val).number_format = TOTAL_CURRENCY
+    ws.cell(row, 7, change).number_format = CHANGE_CURRENCY
+    if prior_val > 0:
+        ws.cell(row, 8, change / prior_val).number_format = CHANGE_PERCENT
+    elif this_val > 0:
+        ws.cell(row, 8, "New")
+    return row + 1
+
+
+def _write_this_week_sheet(wb, tree, week_labels, week_iso, n_weeks):
+    ws = wb.create_sheet("This Week", 0)
+    ws.sheet_view.showGridLines = False
+
+    this_idx = n_weeks - 1
+    prior_idx = n_weeks - 2 if n_weeks > 1 else None
+    week_start = datetime.strptime(week_iso[this_idx], "%Y-%m-%d")
+    week_end = week_start + timedelta(days=6)
+    week_range = f"{week_start.strftime('%B %d')} – {week_end.strftime('%B %d, %Y')}"
+
+    all_this, all_prior = _sum_pairs(
+        (weekly[this_idx], weekly[prior_idx] if prior_idx is not None else 0.0)
+        for advertisers in tree.values()
+        for markets in advertisers.values()
+        for types in markets.values()
+        for stations in types.values()
+        for weekly in stations.values()
+    )
+    total_advertisers = sum(len(advertisers) for advertisers in tree.values())
+
+    filtered = _filter_this_week(tree, this_idx, prior_idx)
+    active_advertisers = sum(len(advertisers) for advertisers in filtered.values())
+
+    last_col = 8
+    for col in range(1, last_col + 1):
+        ws.cell(1, col).fill = _fill(NAVY)
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=last_col)
+    c = ws.cell(1, 1, f"THIS WEEK — {week_range}")
+    c.font = Font(name=FONT_NAME, bold=True, size=16, color="FFFFFF")
+    c.alignment = Alignment(horizontal="left", vertical="center", indent=1)
+    ws.row_dimensions[1].height = 49.5
+    if LOGO_FILE.exists():
+        logo = XLImage(str(LOGO_FILE))
+        aspect = logo.width / logo.height
+        logo.height = 34
+        logo.width = 34 * aspect
+        ws.add_image(logo, "A1")
+
+    change = all_this - all_prior
+    pct = (change / all_prior * 100) if all_prior else None
+    arrow = "↑" if change >= 0 else "↓"
+    pct_txt = f"{arrow} {abs(pct):.0f}% vs prior week" if pct is not None else "no prior-week spend to compare"
+    summary = (
+        f"${all_this:,.0f} total spend this week  |  {pct_txt} (${all_prior:,.0f})  |  "
+        f"{active_advertisers} of {total_advertisers} advertisers active"
+    )
+    ws.merge_cells(start_row=3, start_column=1, end_row=3, end_column=last_col)
+    c = ws.cell(3, 1, summary)
+    c.font = Font(name=FONT_NAME, bold=True, size=11, color=TEXT_DARK)
+
+    header_row = 5
+    for col, text in enumerate(THIS_WEEK_HEADERS, start=1):
+        c = ws.cell(header_row, col, text)
+        c.font = Font(name=FONT_NAME, bold=True, size=9, color="FFFFFF")
+        c.fill = _fill(NAVY)
+        c.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        c.border = _medium_border(HEADER_ACCENT)
+
+    widths = {"A": 28, "B": 24, "C": 10, "D": 30, "E": 14, "F": 14, "G": 14, "H": 12}
+    for col_letter, width in widths.items():
+        ws.column_dimensions[col_letter].width = width
+    ws.freeze_panes = f"A{header_row + 1}"
+
+    row = header_row + 1
+    parties = sorted(filtered.items(), key=lambda kv: -_sum_pairs(
+        (s[0], s[1]) for adv in kv[1].values() for mk in adv.values() for tp in mk.values() for s in tp.values()
+    )[0])
+
+    for party, advertisers in parties:
+        ramp = _ramp_for(party)
+        adv_totals = {
+            adv: _sum_pairs((s[0], s[1]) for mk in markets.values() for tp in mk.values() for s in tp.values())
+            for adv, markets in advertisers.items()
+        }
+        ranked_advs = sorted(advertisers.items(), key=lambda kv: -adv_totals[kv[0]][0])
+        party_total = _sum_pairs(adv_totals.values())
+
+        if not ranked_advs:
+            continue
+
+        for adv, markets in ranked_advs:
+            adv_start = row
+            ws.cell(adv_start, 1, adv).font = Font(name=FONT_NAME, bold=True, size=9, color=TEXT_DARK)
+            ws.cell(adv_start, 1).alignment = Alignment(vertical="center", wrap_text=True)
+
+            by_type = {}
+            for market, types in markets.items():
+                for mtype, stations in types.items():
+                    by_type.setdefault(mtype, {})[market] = stations
+            ranked_types = sorted(
+                by_type.items(),
+                key=lambda kv: -_sum_pairs(s for st in kv[1].values() for s in st.values())[0],
+            )
+
+            for mtype, market_map in ranked_types:
+                for market, stations in market_map.items():
+                    market_start = row
+                    ws.cell(market_start, 2, market).font = Font(name=FONT_NAME, bold=True, size=9, color=TEXT_DARK)
+                    ws.cell(market_start, 2).alignment = Alignment(vertical="center", wrap_text=True)
+                    type_start = row
+                    ws.cell(type_start, 3, mtype).font = Font(name=FONT_NAME, bold=True, size=9, color=TEXT_DARK)
+                    ws.cell(type_start, 3).alignment = Alignment(horizontal="center", vertical="center")
+                    type_total = _sum_pairs(stations.values())
+
+                    if mtype.strip().upper() == "CTV":
+                        row = _write_week_row(
+                            ws, row, 4, f"{market} - {mtype}", *type_total,
+                            ramp["leaf"], False, TEXT_DARK, _thin_border(BORDER_LIGHT),
+                        )
+                    else:
+                        ranked_stations = sorted(stations.items(), key=lambda kv: -kv[1][0])
+                        for station, (tv, pv) in ranked_stations:
+                            row = _write_week_row(
+                                ws, row, 4, station, tv, pv,
+                                ramp["leaf"], False, TEXT_DARK, _thin_border(BORDER_LIGHT),
+                            )
+                        row = _write_week_row(
+                            ws, row, 4, f"{market} - {mtype} Total", *type_total,
+                            ramp["subtotal"], True, TEXT_DARK, _thin_border(BORDER_MED),
+                        )
+                    if row - 1 > market_start:
+                        ws.merge_cells(start_row=market_start, start_column=2, end_row=row - 1, end_column=2)
+                    if mtype.strip().upper() != "CTV" and row - 1 > type_start:
+                        ws.merge_cells(start_row=type_start, start_column=3, end_row=row - 1, end_column=3)
+
+                type_grand = _sum_pairs(s for st in market_map.values() for s in st.values())
+                row = _write_week_row(
+                    ws, row, 4, f"{mtype.upper()} TOTAL", *type_grand,
+                    ramp["type_total"], True, TEXT_DARK, _thin_border(BORDER_MED),
+                )
+
+            row = _write_week_row(
+                ws, row, 4, f"{adv} Total", *adv_totals[adv],
+                ramp["adv_total"], True, TEXT_DARK, _medium_border(BORDER_MED),
+            )
+            if row - 1 > adv_start:
+                ws.merge_cells(start_row=adv_start, start_column=1, end_row=row - 1, end_column=1)
+            row += 1  # blank spacer
+
+        row = _write_week_row(
+            ws, row, 1, f"{party.upper()} PARTY TOTAL", *party_total,
+            ramp["party_total"], True, "FFFFFF", _medium_border("FFFFFF"), font_size=10,
+        )
+        ws.merge_cells(start_row=row - 1, start_column=1, end_row=row - 1, end_column=4)
+
+    row = _write_week_row(
+        ws, row, 1, "GRAND TOTAL", all_this, all_prior,
+        GRAND_FILL, True, "FFFFFF", _medium_border("FFFFFF"), font_size=10,
+    )
+    ws.merge_cells(start_row=row - 1, start_column=1, end_row=row - 1, end_column=4)
+
+    row += 1
+    ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=last_col)
+    c = ws.cell(row, 1, "Report prepared by GPS Impact  |  Confidential")
+    c.font = Font(name=FONT_NAME, italic=True, size=8, color=FOOTER_GRAY)
+    ws.row_dimensions[row].height = 18
+    return ws
+
+
+def write_excel_report(leaf_rows, index_map, week_labels, output_path, title="DIGITAL COMPETITIVE REPORT",
+                        week_iso=None):
     n_weeks = len(week_labels)
     tree = build_hierarchy(leaf_rows, index_map, n_weeks)
     wb = Workbook()
     _write_main_sheet(wb, tree, week_labels, n_weeks, title)
     _write_market_summary_sheet(wb, tree, n_weeks)
+    if week_iso is not None:
+        _write_this_week_sheet(wb, tree, week_labels, week_iso, n_weeks)
+    wb.active = 0
     wb.save(output_path)

@@ -30,7 +30,7 @@ def main():
         race = meta.get("race")
         title = f"{race.upper()} DIGITAL COMPETITIVE REPORT" if race else "DIGITAL COMPETITIVE REPORT"
 
-    write_excel_report(leaf_rows, index_map, week_labels, args.output, title=title)
+    write_excel_report(leaf_rows, index_map, week_labels, args.output, title=title, week_iso=week_iso)
     print(f"Wrote {args.output}")
 
 

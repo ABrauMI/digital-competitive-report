@@ -37,16 +37,27 @@ header block.
 
 ## `generate_excel_report.py`
 
-Produces a workbook with two sheets:
+Produces a workbook with three sheets:
 
+- **This Week** (first tab) — same hierarchy as the main sheet, but scoped
+  to just the most recent week in the export, compared against the week
+  before it (spend, $ change, % change), and with any advertiser/market/
+  platform that spent nothing this week dropped entirely — this is "what's
+  running right now," not a historical view. "This week" is whatever the
+  last week column in the export is; re-run the generator against a fresh
+  export to roll it forward. Opens as the active tab.
 - **Competitive Digital Report** — Candidate/Committee → Market → Type →
   Station/Platform, with a Total Spend column and one column per week.
-  Subtotals roll up Market+Type, then the advertiser, then the party, then a
-  grand total — same shade-ramp-by-rollup-level styling as the linear
-  template (navy header, escalating light-blue fills, merged hierarchy
-  cells, frozen panes so the label columns stay visible while scrolling
-  through weeks).
+  Subtotals roll up Market+Type, then CTV/Digital, then the advertiser, then
+  the party, then a grand total — same shade-ramp-by-rollup-level styling as
+  the linear template (navy header, merged hierarchy cells, frozen panes so
+  the label columns stay visible while scrolling through weeks).
 - **Market Summary** — per-advertiser market/type totals, no weekly detail.
+
+On both the main sheet and This Week, CTV platforms (In-App, Device,
+Streaming, ...) roll into a single combined line per market instead of
+breaking out individually — Digital platforms (Google, Facebook, ...) are
+unaffected and still show per-platform detail.
 
 Digital has no GRPs/CPP equivalent without a separate impressions export, so
 those columns are simply omitted for now — spend only. If you pull a weekly
