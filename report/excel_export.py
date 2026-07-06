@@ -668,7 +668,7 @@ def _write_no_data_week_sheet(wb, target_iso):
 
 
 CREATIVE_HEADERS = ["CANDIDATE / COMMITTEE", "CREATIVE", "PLATFORM", "TONE", "TOTAL SPEND", "START DATE", "END DATE"]
-CREATIVE_DATE_FORMAT = "m/d/yy"
+CREATIVE_DATE_FORMAT = "m/d"
 
 
 def _write_creative_timeline_sheet(wb, creative_rows, party_lookup, week_iso, week_labels):
@@ -714,7 +714,7 @@ def _write_creative_timeline_sheet(wb, creative_rows, party_lookup, week_iso, we
         c.border = _medium_border(HEADER_ACCENT)
     ws.row_dimensions[header_row].height = 31.5
 
-    widths = {"A": 28, "B": 30, "C": 10, "D": 12, "E": 14, "F": 9, "G": 9}
+    widths = {"A": 28, "B": 30, "C": 10, "D": 12, "E": 14, "F": 7, "G": 7}
     for col_letter, w in widths.items():
         ws.column_dimensions[col_letter].width = w
     for i in range(n_weeks):
