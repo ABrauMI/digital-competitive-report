@@ -668,7 +668,7 @@ def _write_no_data_week_sheet(wb, target_iso):
 
 
 CREATIVE_HEADERS = ["CANDIDATE / COMMITTEE", "CREATIVE", "PLATFORM", "TONE", "TOTAL SPEND", "START DATE", "END DATE"]
-CREATIVE_DATE_FORMAT = "mmm d, yyyy"
+CREATIVE_DATE_FORMAT = "m/d/yy"
 
 
 def _write_creative_timeline_sheet(wb, creative_rows, party_lookup, week_iso, week_labels):
@@ -714,7 +714,7 @@ def _write_creative_timeline_sheet(wb, creative_rows, party_lookup, week_iso, we
         c.border = _medium_border(HEADER_ACCENT)
     ws.row_dimensions[header_row].height = 31.5
 
-    widths = {"A": 28, "B": 30, "C": 10, "D": 12, "E": 14, "F": 13, "G": 13}
+    widths = {"A": 28, "B": 30, "C": 10, "D": 12, "E": 14, "F": 9, "G": 9}
     for col_letter, w in widths.items():
         ws.column_dimensions[col_letter].width = w
     for i in range(n_weeks):
@@ -741,7 +741,12 @@ def _write_creative_timeline_sheet(wb, creative_rows, party_lookup, week_iso, we
             for cr in creatives:
                 font = Font(name=FONT_NAME, size=9, color=TEXT_DARK)
                 ws.cell(row, 1, adv).font = font
-                ws.cell(row, 2, cr["title"]).font = font
+                title_cell = ws.cell(row, 2, cr["title"])
+                if cr.get("url"):
+                    title_cell.hyperlink = cr["url"]
+                    title_cell.font = Font(name=FONT_NAME, size=9, color=BRAND_BLUE, underline="single")
+                else:
+                    title_cell.font = font
                 ws.cell(row, 3, cr["platform"]).font = font
                 ws.cell(row, 3).alignment = Alignment(horizontal="center")
                 ws.cell(row, 4, cr["tone"] or "").font = font

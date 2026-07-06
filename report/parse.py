@@ -238,9 +238,11 @@ def load_creative_export(path, sheet_name=None):
     Returns a list of dicts, one per creative: start, end (datetime),
     title, advertiser, platform ("CTV" or "Digital" — whichever of the two
     spend columns is nonzero; a creative is never both in this export),
-    tone, total_spend. Broadcast/Cable columns are read but discarded —
-    this export is meant to be pulled already filtered to Media Type =
-    CTV, Digital, so those columns are $0 anyway, not just irrelevant.
+    tone, total_spend, url (AdImpact's public ad-preview link, or None if
+    the export doesn't have that column). Broadcast/Cable columns are read
+    but discarded — this export is meant to be pulled already filtered to
+    Media Type = CTV, Digital, so those columns are $0 anyway, not just
+    irrelevant.
     """
     wb = openpyxl.load_workbook(path, data_only=True)
     ws = wb[sheet_name] if sheet_name else wb[wb.sheetnames[0]]
@@ -274,6 +276,7 @@ def load_creative_export(path, sheet_name=None):
                 "platform": "CTV" if ctv_spend >= digital_spend else "Digital",
                 "tone": r[col["Tone"]],
                 "total_spend": _num(r[col["Total Spend"]]),
+                "url": r[col["Public URL"]] if "Public URL" in col else None,
             }
         )
     return rows
