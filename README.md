@@ -37,13 +37,21 @@ header block.
 
 ## `generate_excel_report.py`
 
-Produces a workbook with three sheets:
+Produces a workbook with three sheets, in this tab order (Competitive
+Report opens as the active tab):
 
-- **This Week** (first tab) — same hierarchy as the main sheet, but scoped
-  to just the current media week, compared against the week before it
-  (spend, $ change, % change), with any advertiser/market/platform that
-  spent nothing this week dropped entirely — this is "what's running right
-  now," not a historical view. Opens as the active tab.
+- **Competitive Digital Report** — Candidate/Committee → Market → Type →
+  Station/Platform, with a Total Spend column and one column per week.
+  Subtotals roll up Market+Type, then CTV/Digital, then the advertiser, then
+  the party, then a grand total — same shade-ramp-by-rollup-level styling as
+  the linear template (navy header, merged hierarchy cells, frozen panes so
+  the label columns stay visible while scrolling through weeks).
+- **Market Summary** — per-advertiser market/type totals, no weekly detail.
+- **This Week** — same hierarchy as the main sheet, but scoped to just the
+  current media week, compared against the week before it (spend, $ change,
+  % change), with any advertiser/market/platform that spent nothing this
+  week dropped entirely — this is "what's running right now," not a
+  historical view.
 
   "This week" means the **Tuesday on or before today, in America/New
   York** (GPS Impact's media-week convention — Tuesday through Monday),
@@ -57,13 +65,6 @@ Produces a workbook with three sheets:
   Override with `--current-week YYYY-MM-DD` (the Tuesday it starts on) to
   pin a specific week — for regenerating a past week's report, or for
   testing without waiting for a real Tuesday.
-- **Competitive Digital Report** — Candidate/Committee → Market → Type →
-  Station/Platform, with a Total Spend column and one column per week.
-  Subtotals roll up Market+Type, then CTV/Digital, then the advertiser, then
-  the party, then a grand total — same shade-ramp-by-rollup-level styling as
-  the linear template (navy header, merged hierarchy cells, frozen panes so
-  the label columns stay visible while scrolling through weeks).
-- **Market Summary** — per-advertiser market/type totals, no weekly detail.
 
 On both the main sheet and This Week, CTV platforms (In-App, Device,
 Streaming, ...) roll into a single combined line per market instead of

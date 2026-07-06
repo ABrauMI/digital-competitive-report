@@ -491,7 +491,7 @@ def _write_week_row(ws, row, label_col, label, this_val, prior_val, fill, bold, 
 
 
 def _write_this_week_sheet(wb, tree, week_iso, this_idx):
-    ws = wb.create_sheet("This Week", 0)
+    ws = wb.create_sheet("This Week")
     ws.sheet_view.showGridLines = False
 
     prior_idx = this_idx - 1 if this_idx > 0 else None
@@ -643,7 +643,7 @@ def _write_this_week_sheet(wb, tree, week_iso, this_idx):
 
 
 def _write_no_data_week_sheet(wb, target_iso):
-    ws = wb.create_sheet("This Week", 0)
+    ws = wb.create_sheet("This Week")
     ws.sheet_view.showGridLines = False
     ws.column_dimensions["A"].width = 60
     ws.row_dimensions[1].height = 40
