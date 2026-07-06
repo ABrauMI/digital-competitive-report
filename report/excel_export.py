@@ -520,12 +520,6 @@ def _write_this_week_sheet(wb, tree, week_iso, this_idx):
     c.font = Font(name=FONT_NAME, bold=True, size=16, color="FFFFFF")
     c.alignment = Alignment(horizontal="left", vertical="center", indent=1)
     ws.row_dimensions[1].height = 49.5
-    if LOGO_FILE.exists():
-        logo = XLImage(str(LOGO_FILE))
-        aspect = logo.width / logo.height
-        logo.height = 34
-        logo.width = 34 * aspect
-        ws.add_image(logo, "A1")
 
     change = all_this - all_prior
     pct = (change / all_prior * 100) if all_prior else None
