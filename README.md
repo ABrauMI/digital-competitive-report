@@ -122,9 +122,23 @@ picked by eye. If you add a platform beyond the five validated slots in
 validator on the new set instead of eyeballing a hex value; both fall back to
 a neutral gray for anything beyond what's been validated.
 
-The Excel report's navy/light-blue fills (`report/excel_export.py`) are
-carried over directly from GPS Impact's existing linear TV competitive
-report template rather than re-derived from the brand guidelines.
+## Color choices (Excel report)
+
+`report/excel_export.py` mirrors the linear TV report's *layout* (hierarchy,
+merges, rollup shading) but its *colors* come straight from the brand
+guidelines rather than the specific hex values sampled off that one linear
+file (which was closer but not exact — e.g. its navy was `#1F3355` and its
+header-accent red was `#ED492E`, not the brand's `#323b51` / `#de5e4e`):
+
+- Header band, grand total, and the GPS Impact logo (embedded in the header,
+  `assets/logos/GPSImpact_White_Horizontal_2026.png`): brand Navy `#323b51`
+- Header underline accent: brand Red `#de5e4e`
+- Rollup shade ramp (leaf → market/type subtotal → advertiser total → party
+  total): light-to-dark tints of brand Blue `#3d6a91`, landing on brand Blue
+  itself for the party-total row
+- Body text: brand Navy `#323b51`
+- Footer line ("Report prepared by GPS Impact | Confidential"): neutral gray,
+  matching the linear template's own footer convention
 
 ## Data & confidentiality
 

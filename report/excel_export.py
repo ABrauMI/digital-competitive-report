@@ -1,6 +1,7 @@
 """Write the flat, spreadsheet-style competitive report GPS Impact already
-produces for linear TV — same hierarchy, same navy/light-blue shade ramp by
-rollup level, same merged-cell nesting — reapplied to digital spend.
+produces for linear TV — same hierarchy, same shade ramp by rollup level,
+same merged-cell nesting — reapplied to digital spend, in GPS Impact's own
+2026 brand colors and with the brand logo embedded in the header band.
 
 Layout (per the linear "Competitive TV Report" template this mirrors):
   CANDIDATE / COMMITTEE -> MARKET -> TYPE -> STATION/PLATFORM, with a Total
@@ -11,20 +12,33 @@ Digital has no GRPs/CPP equivalent without a separate impressions export, so
 those columns are simply omitted for now — spend only, matching how far the
 underlying AdImpact export goes.
 """
+from pathlib import Path
+
 from openpyxl import Workbook
+from openpyxl.drawing.image import Image as XLImage
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
-NAVY = "1F3355"
-HEADER_ACCENT = "ED492E"
-LEAF_FILL = "EBF3FA"
-SUBTOTAL_FILL = "D8EDF8"
-ADV_TOTAL_FILL = "B8D9F0"
-PARTY_TOTAL_FILL = "2A669B"
-GRAND_FILL = "1F3355"
-TEXT_DARK = "1A1A2E"
+# GPS Impact Brand Guidelines 2026
+BRAND_NAVY = "323b51"
+BRAND_BLUE = "3d6a91"
+BRAND_RED = "de5e4e"
+BRAND_PALE_BLUE = "bed7d5"
+
+# Rollup-level shade ramp: light-to-dark tints of BRAND_BLUE, ending in
+# BRAND_BLUE itself (party total) and BRAND_NAVY (header/grand total) — see
+# README.md#color-choices for how these tints were derived.
+NAVY = BRAND_NAVY
+HEADER_ACCENT = BRAND_RED
+LEAF_FILL = "ecf0f4"
+SUBTOTAL_FILL = "d4dee7"
+ADV_TOTAL_FILL = "b5c6d5"
+PARTY_TOTAL_FILL = BRAND_BLUE
+GRAND_FILL = BRAND_NAVY
+TEXT_DARK = BRAND_NAVY
 BORDER_LIGHT = "E5E7EB"
 BORDER_MED = "CCCCCC"
+FOOTER_GRAY = "6B7280"
 
 LEAF_CURRENCY = '$#,##0;-$#,##0;""'
 TOTAL_CURRENCY = "$#,##0"
@@ -32,6 +46,9 @@ TOTAL_CURRENCY = "$#,##0"
 FONT_NAME = "Calibri"
 
 FIRST_DATA_ROW = 4  # 1=title, 2=blank, 3=header
+
+ASSETS_DIR = Path(__file__).resolve().parent.parent / "assets"
+LOGO_FILE = ASSETS_DIR / "logos" / "GPSImpact_White_Horizontal_2026.png"
 
 
 def _fill(hex_color):
@@ -90,11 +107,21 @@ class _Writer:
         ws = self.ws
         ws.sheet_view.showGridLines = False
         last_col = 5 + self.n_weeks
-        ws.merge_cells(start_row=1, start_column=4, end_row=1, end_column=6)
+
+        for col in range(1, last_col + 1):
+            ws.cell(1, col).fill = _fill(NAVY)
+        ws.merge_cells(start_row=1, start_column=4, end_row=1, end_column=last_col)
         c = ws.cell(1, 4, title)
         c.font = Font(name=FONT_NAME, bold=True, size=16, color="FFFFFF")
-        c.fill = _fill(NAVY)
+        c.alignment = Alignment(horizontal="left", vertical="center")
         ws.row_dimensions[1].height = 49.5
+
+        if LOGO_FILE.exists():
+            logo = XLImage(str(LOGO_FILE))
+            aspect = logo.width / logo.height
+            logo.height = 34
+            logo.width = 34 * aspect
+            ws.add_image(logo, "A1")
 
         headers = ["CANDIDATE / COMMITTEE", "MARKET", "TYPE", "STATION / PLATFORM", "TOTAL SPEND"] + self.week_labels
         for col, text in enumerate(headers, start=1):
@@ -176,6 +203,16 @@ class _Writer:
     def blank_row(self):
         self.row += 1
 
+    def write_footer(self):
+        last_col = 5 + self.n_weeks
+        self.blank_row()
+        r = self.row
+        self.ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=last_col)
+        c = self.ws.cell(r, 1, "Report prepared by GPS Impact  |  Confidential")
+        c.font = Font(name=FONT_NAME, italic=True, size=8, color=FOOTER_GRAY)
+        self.ws.row_dimensions[r].height = 18
+        self.row += 1
+
     def write_group_label(self, col, row, text):
         c = self.ws.cell(row, col, text)
         c.font = Font(name=FONT_NAME, bold=True, size=9, color=TEXT_DARK)
@@ -246,6 +283,7 @@ def _write_main_sheet(wb, tree, week_labels, n_weeks, title):
     )
     w.write_grand_total("GRAND TOTAL", sum(grand_weekly), grand_weekly)
     w.merge_label_row(w.row - 1)
+    w.write_footer()
     return ws
 
 
