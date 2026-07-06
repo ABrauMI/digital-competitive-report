@@ -1,0 +1,817 @@
+<title>__PAGE_TITLE__</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+/*__FONT_FACES__*/
+
+:root {
+  --page-bg: #f5f6f3;
+  --card-bg: #ffffff;
+  --card-bg-raised: #fbfbfa;
+  --ink-primary: #20263a;
+  --ink-secondary: #545c72;
+  --ink-muted: #8890a0;
+  --hairline: rgba(50,59,81,0.13);
+  --hairline-strong: rgba(50,59,81,0.22);
+  --grid: #e8eae9;
+  --axis: #c9cdd0;
+  --navy: #323b51;
+  --navy-ink: #ffffff;
+  --paleblue: #bed7d5;
+  --paleblue-wash: #eef4f3;
+  --blue: #2f6ea3;
+  --red: #de5e4e;
+  --tile-bg: #eef2f0;
+  --shadow-1: 0 1px 2px rgba(30,34,50,0.05);
+  --shadow-2: 0 14px 34px -18px rgba(30,34,50,0.28);
+  --good: #1f7a4c;
+  --bad: #b3452f;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page-bg: #11151f;
+    --card-bg: #1a2130;
+    --card-bg-raised: #202839;
+    --ink-primary: #eef1f6;
+    --ink-secondary: #adb4c6;
+    --ink-muted: #7d859a;
+    --hairline: rgba(255,255,255,0.10);
+    --hairline-strong: rgba(255,255,255,0.18);
+    --grid: #2a3142;
+    --axis: #3a4258;
+    --navy: #171c29;
+    --navy-ink: #eef1f6;
+    --paleblue: #33474a;
+    --paleblue-wash: #1c2c2d;
+    --tile-bg: #1e2636;
+    --shadow-1: 0 1px 2px rgba(0,0,0,0.3);
+    --shadow-2: 0 14px 34px -18px rgba(0,0,0,0.6);
+    --good: #4fae7c;
+    --bad: #e2836d;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --page-bg: #11151f;
+  --card-bg: #1a2130;
+  --card-bg-raised: #202839;
+  --ink-primary: #eef1f6;
+  --ink-secondary: #adb4c6;
+  --ink-muted: #7d859a;
+  --hairline: rgba(255,255,255,0.10);
+  --hairline-strong: rgba(255,255,255,0.18);
+  --grid: #2a3142;
+  --axis: #3a4258;
+  --navy: #171c29;
+  --navy-ink: #eef1f6;
+  --paleblue: #33474a;
+  --paleblue-wash: #1c2c2d;
+  --tile-bg: #1e2636;
+  --shadow-1: 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-2: 0 14px 34px -18px rgba(0,0,0,0.6);
+  --good: #4fae7c;
+  --bad: #e2836d;
+  color-scheme: dark;
+}
+:root[data-theme="light"] {
+  --page-bg: #f5f6f3;
+  --card-bg: #ffffff;
+  --card-bg-raised: #fbfbfa;
+  --ink-primary: #20263a;
+  --ink-secondary: #545c72;
+  --ink-muted: #8890a0;
+  --hairline: rgba(50,59,81,0.13);
+  --hairline-strong: rgba(50,59,81,0.22);
+  --grid: #e8eae9;
+  --axis: #c9cdd0;
+  --navy: #323b51;
+  --navy-ink: #ffffff;
+  --paleblue: #bed7d5;
+  --paleblue-wash: #eef4f3;
+  --blue: #2f6ea3;
+  --red: #de5e4e;
+  --tile-bg: #eef2f0;
+  --shadow-1: 0 1px 2px rgba(30,34,50,0.05);
+  --shadow-2: 0 14px 34px -18px rgba(30,34,50,0.28);
+  --good: #1f7a4c;
+  --bad: #b3452f;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--page-bg);
+  color: var(--ink-primary);
+  font-family: 'Figtree', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+::selection { background: var(--paleblue); color: var(--navy); }
+
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 28px 80px; }
+
+/* ---------- Masthead ---------- */
+.masthead {
+  background: var(--navy);
+  color: var(--navy-ink);
+  padding: 40px 0 34px;
+  margin-bottom: 40px;
+}
+.masthead-inner { max-width: 1180px; margin: 0 auto; padding: 0 28px; }
+.masthead img.logo { height: 30px; display: block; margin-bottom: 26px; opacity: 0.96; }
+.eyebrow {
+  font-family: 'Figtree', sans-serif;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--paleblue);
+  margin: 0 0 10px;
+}
+h1.title {
+  font-family: 'Superior Display', Georgia, 'Times New Roman', serif;
+  font-weight: 900;
+  font-size: clamp(32px, 4.4vw, 46px);
+  line-height: 1.05;
+  margin: 0 0 14px;
+  text-wrap: balance;
+  letter-spacing: -0.01em;
+}
+.masthead .meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  font-size: 13.5px;
+  color: rgba(255,255,255,0.78);
+  font-weight: 500;
+}
+.masthead .meta b { color: #fff; font-weight: 700; }
+
+/* ---------- Section scaffolding ---------- */
+section { margin-bottom: 52px; }
+.section-head { margin-bottom: 18px; }
+h2.section-title {
+  font-family: 'Superior Display', Georgia, serif;
+  font-weight: 800;
+  font-size: 23px;
+  margin: 0 0 6px;
+  letter-spacing: -0.005em;
+}
+.section-sub {
+  color: var(--ink-secondary);
+  font-size: 14.5px;
+  margin: 0;
+  max-width: 68ch;
+}
+
+/* ---------- KPI tiles ---------- */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+.kpi-tile {
+  background: var(--tile-bg);
+  border-radius: 12px;
+  padding: 18px 20px;
+  border: 1px solid var(--hairline);
+}
+.kpi-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin: 0 0 10px;
+}
+.kpi-value {
+  font-family: 'Figtree', sans-serif;
+  font-weight: 800;
+  font-size: 28px;
+  color: var(--ink-primary);
+  margin: 0 0 4px;
+  letter-spacing: -0.01em;
+}
+.kpi-sub { font-size: 13px; color: var(--ink-secondary); }
+.kpi-sub .delta-up { color: var(--good); font-weight: 700; }
+.kpi-sub .delta-down { color: var(--bad); font-weight: 700; }
+
+/* ---------- Narrative ---------- */
+.narrative {
+  background: var(--card-bg);
+  border: 1px solid var(--hairline);
+  border-radius: 14px;
+  padding: 26px 28px;
+  box-shadow: var(--shadow-1);
+}
+.narrative p { margin: 0 0 14px; color: var(--ink-secondary); font-size: 15.5px; }
+.narrative p:last-child { margin-bottom: 0; }
+.narrative strong { color: var(--ink-primary); font-weight: 700; }
+.narrative .lede {
+  font-size: 17px;
+  color: var(--ink-primary);
+  font-weight: 500;
+}
+
+/* ---------- Chart card ---------- */
+.chart-card {
+  background: var(--card-bg);
+  border: 1px solid var(--hairline);
+  border-radius: 14px;
+  padding: 24px 24px 18px;
+  box-shadow: var(--shadow-1);
+}
+.chart-scroll { overflow-x: auto; overflow-y: hidden; padding-bottom: 4px; }
+.chart-scroll svg { display: block; }
+.chart-scroll::-webkit-scrollbar { height: 8px; }
+.chart-scroll::-webkit-scrollbar-thumb { background: var(--axis); border-radius: 8px; }
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--hairline);
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-secondary);
+}
+.legend-swatch { width: 11px; height: 11px; border-radius: 3px; flex: none; }
+.legend-item .n { color: var(--ink-muted); font-weight: 500; font-variant-numeric: tabular-nums; }
+
+.chart-tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: var(--navy);
+  color: var(--navy-ink);
+  border-radius: 10px;
+  padding: 10px 13px;
+  font-size: 12.5px;
+  box-shadow: var(--shadow-2);
+  z-index: 30;
+  min-width: 190px;
+  opacity: 0;
+  transition: opacity 0.08s ease;
+}
+.chart-tooltip.show { opacity: 1; }
+.chart-tooltip .tt-date {
+  font-weight: 700;
+  font-size: 12.5px;
+  margin-bottom: 7px;
+  color: #fff;
+  border-bottom: 1px solid rgba(255,255,255,0.18);
+  padding-bottom: 6px;
+}
+.chart-tooltip .tt-row { display: flex; align-items: center; gap: 7px; padding: 2px 0; }
+.chart-tooltip .tt-key { width: 9px; height: 9px; border-radius: 2px; flex: none; }
+.chart-tooltip .tt-name { flex: 1; color: rgba(255,255,255,0.82); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
+.chart-tooltip .tt-val { font-weight: 700; font-variant-numeric: tabular-nums; color: #fff; }
+.chart-tooltip .tt-total { margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.18); display:flex; justify-content:space-between; font-weight: 700; }
+
+.chart-wrap { position: relative; }
+.col-hit { fill: transparent; cursor: crosshair; }
+.col-highlight { fill: var(--ink-primary); opacity: 0; }
+
+/* ---------- Table ---------- */
+.table-card {
+  background: var(--card-bg);
+  border: 1px solid var(--hairline);
+  border-radius: 14px;
+  padding: 8px 4px 4px;
+  box-shadow: var(--shadow-1);
+  overflow-x: auto;
+}
+table.adv-table { border-collapse: collapse; width: 100%; min-width: 880px; }
+table.adv-table thead th {
+  text-align: left;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--hairline-strong);
+  white-space: nowrap;
+}
+table.adv-table td {
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--hairline);
+  vertical-align: middle;
+  font-size: 14px;
+}
+table.adv-table tbody tr:last-child td { border-bottom: none; }
+table.adv-table tbody tr:hover { background: var(--paleblue-wash); }
+td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.adv-name { font-weight: 700; color: var(--ink-primary); }
+.adv-type { color: var(--ink-muted); font-size: 12px; display: block; font-weight: 500; margin-top: 1px; }
+.party-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.03em;
+  padding: 3px 9px 3px 7px; border-radius: 999px;
+  background: var(--pill-bg); color: var(--pill-ink);
+}
+.party-pill .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--pill-dot); }
+
+.mix-bar { display: flex; height: 9px; width: 108px; border-radius: 3px; overflow: hidden; background: var(--grid); }
+.mix-bar span { display: block; height: 100%; }
+.spark { display: block; }
+
+/* ---------- Footer ---------- */
+footer {
+  border-top: 1px solid var(--hairline);
+  padding-top: 22px;
+  margin-top: 8px;
+  color: var(--ink-muted);
+  font-size: 12.5px;
+  line-height: 1.7;
+}
+footer p { margin: 0 0 8px; max-width: 82ch; }
+footer .brand-foot { display:flex; align-items:center; gap:10px; margin-top:16px; }
+footer .brand-foot img { height: 16px; opacity: 0.7; }
+
+@media (max-width: 860px) {
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  table.adv-table { min-width: 760px; }
+}
+@media (max-width: 560px) {
+  .wrap { padding: 0 16px 60px; }
+  .masthead-inner { padding: 0 16px; }
+  .kpi-grid { grid-template-columns: 1fr 1fr; }
+}
+</style>
+
+<div class="masthead">
+  <div class="masthead-inner">
+    <img class="logo" id="logo-img" src="__LOGO_WHITE__" alt="GPS Impact" />
+    <p class="eyebrow" id="masthead-eyebrow"></p>
+    <h1 class="title" id="masthead-title"></h1>
+    <div class="meta" id="masthead-meta"></div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <section id="kpi-section">
+    <div class="kpi-grid" id="kpi-grid"></div>
+  </section>
+
+  <section>
+    <div class="narrative" id="narrative"></div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2 class="section-title">Weekly spend by platform</h2>
+      <p class="section-sub" id="platform-chart-sub"></p>
+    </div>
+    <div class="chart-card">
+      <div class="chart-wrap">
+        <div class="chart-scroll" id="chart-platform-scroll"></div>
+        <div class="chart-tooltip" id="tooltip-platform"></div>
+      </div>
+      <div class="legend" id="legend-platform"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2 class="section-title">Weekly spend by advertiser</h2>
+      <p class="section-sub" id="advertiser-chart-sub"></p>
+    </div>
+    <div class="chart-card">
+      <div class="chart-wrap">
+        <div class="chart-scroll" id="chart-advertiser-scroll"></div>
+        <div class="chart-tooltip" id="tooltip-advertiser"></div>
+      </div>
+      <div class="legend" id="legend-advertiser"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2 class="section-title">All active advertisers</h2>
+      <p class="section-sub" id="table-sub"></p>
+    </div>
+    <div class="table-card">
+      <table class="adv-table">
+        <thead>
+          <tr>
+            <th>Advertiser</th>
+            <th>Party</th>
+            <th>Weekly trend</th>
+            <th>Platform mix</th>
+            <th style="text-align:right">Total spend</th>
+            <th style="text-align:right">Share</th>
+          </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer id="footer-note"></footer>
+
+</div>
+
+<script>
+const DATA = /*__DATA_JSON__*/;
+</script>
+<script>
+(function(){
+
+// ---------------- theme helpers ----------------
+function isDark() {
+  const t = document.documentElement.getAttribute('data-theme');
+  if (t === 'dark') return true;
+  if (t === 'light') return false;
+  return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
+function seriesColor(s) { return isDark() ? s.color.dark : s.color.light; }
+function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+// ---------------- formatting ----------------
+function fmtCompact(v) {
+  const sign = v < 0 ? '-' : '';
+  v = Math.abs(v);
+  if (v >= 1000000) return sign + '$' + (v/1000000).toFixed(v>=10000000?1:2).replace(/\.0+$/,'') + 'M';
+  if (v >= 1000) return sign + '$' + (v/1000).toFixed(v>=10000?0:1).replace(/\.0$/,'') + 'K';
+  return sign + '$' + v.toFixed(0);
+}
+function fmtFull(v) {
+  return '$' + Math.round(v).toLocaleString('en-US');
+}
+function fmtPct(v) { return v.toFixed(1) + '%'; }
+
+const NS = 'http://www.w3.org/2000/svg';
+function el(tag, attrs) {
+  const e = document.createElementNS(NS, tag);
+  if (attrs) for (const k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+}
+
+// ---------------- masthead ----------------
+(function(){
+  document.getElementById('masthead-eyebrow').textContent = DATA.meta.eyebrow;
+  document.getElementById('masthead-title').textContent = DATA.meta.title;
+  const meta = document.getElementById('masthead-meta');
+  const first = DATA.week_labels[0], last = DATA.week_labels[DATA.week_labels.length-1];
+  const items = [
+    ['Race', DATA.meta.race],
+    ['Media tracked', DATA.meta.media_types],
+    ['Window', first + ' – ' + last],
+    ['Source', DATA.meta.source]
+  ].filter(([,v]) => v);
+  items.forEach(([k,v])=>{
+    const span = document.createElement('span');
+    const b = document.createElement('b'); b.textContent = v;
+    span.appendChild(document.createTextNode(k + ': '));
+    span.appendChild(b);
+    meta.appendChild(span);
+  });
+
+  document.getElementById('platform-chart-sub').textContent =
+    'Combined ' + DATA.meta.media_types + ' spend across all active advertisers, broken out by the '
+    + DATA.platform_series.length + ' platform' + (DATA.platform_series.length===1?'':'s') + ' this export tracks. Scroll to see the full flight.';
+  const namedCount = DATA.top_series.filter(s => s.name !== 'All Other Advertisers').length;
+  document.getElementById('advertiser-chart-sub').textContent = DATA.other_count > 0
+    ? 'The ' + namedCount + ' biggest spenders shown individually; every other advertiser in the race rolled into "All Other Advertisers."'
+    : 'Every advertiser active in this race, shown individually.';
+})();
+
+// ---------------- KPI tiles ----------------
+(function(){
+  const grid = document.getElementById('kpi-grid');
+  const N = DATA.n_weeks;
+  const advWeek = {};
+  DATA.advertiser_rows.forEach(r => advWeek[r.name] = r.weekly);
+  const totalByWeek = w => DATA.advertiser_rows.reduce((s,r)=>s+r.weekly[w], 0);
+  const latest = totalByWeek(N-1), prev = totalByWeek(N-2);
+  const delta = prev > 0 ? ((latest-prev)/prev*100) : 0;
+  const activeLast4 = DATA.advertiser_rows.filter(r => r.weekly.slice(N-4).some(v=>v>0)).length;
+  const leader = DATA.advertiser_rows[0];
+
+  const tiles = [
+    { label: 'Total tracked spend', value: fmtCompact(DATA.grand_total), sub: 'CTV + Digital, ' + DATA.week_labels[0] + '–' + DATA.week_labels[N-1] },
+    { label: 'Leading spender', value: leader.name, sub: fmtCompact(leader.total) + ' · ' + fmtPct(leader.share) + ' share', isText: true },
+    { label: 'Active advertisers', value: activeLast4 + ' of ' + DATA.advertiser_rows.length, sub: 'spent in the trailing 4 weeks' },
+    { label: 'Latest week', value: fmtCompact(latest), sub: '<span class="' + (delta>=0?'delta-up':'delta-down') + '">' + (delta>=0?'↑':'↓') + ' ' + Math.abs(delta).toFixed(0) + '%</span> vs prior week · week of ' + DATA.week_labels[N-1] + ' (in progress)' }
+  ];
+  tiles.forEach(t => {
+    const d = document.createElement('div'); d.className = 'kpi-tile';
+    const value = t.isText ? ('<div class="kpi-value" style="font-size:20px; line-height:1.25">' + t.value.replace(/</g,'&lt;') + '</div>') : ('<div class="kpi-value">' + t.value + '</div>');
+    d.innerHTML = '<p class="kpi-label">' + t.label + '</p>' + value + '<p class="kpi-sub">' + t.sub + '</p>';
+    grid.appendChild(d);
+  });
+})();
+
+// ---------------- narrative ----------------
+(function(){
+  const box = document.getElementById('narrative');
+  const rows = DATA.advertiser_rows;
+  const leader = rows[0];
+  const runnerUp = rows[1];
+  const topPlatform = [...DATA.platform_series].sort((a,b)=>b.total-a.total)[0];
+  const secondPlatform = [...DATA.platform_series].sort((a,b)=>b.total-a.total)[1];
+  const platformLabel = s => s.label || s.name || s.key;
+
+  const paragraphs = [];
+  paragraphs.push(`<p class="lede"><strong>${leader.name}</strong> has outspent the entire rest of the field combined, accounting for <strong>${fmtPct(leader.share)}</strong> of all tracked dollars since ${DATA.week_labels[0]}${runnerUp ? ` &mdash; more than ${(leader.share/(100-leader.share)).toFixed(1)}&times; every other advertiser's spend put together` : ''}.</p>`);
+
+  // party breakdown — generic over whatever party labels are present
+  const byParty = {};
+  rows.forEach(r => { (byParty[r.party] = byParty[r.party] || []).push(r); });
+  const partyGroups = Object.entries(byParty)
+    .map(([party, list]) => ({ party, list, share: list.reduce((s,r)=>s+r.share,0) }))
+    .sort((a,b) => b.share - a.share);
+  if (partyGroups.length >= 2) {
+    const [a, b] = partyGroups;
+    const aConcentrated = a.list.length === 1 ? 'concentrated in a single campaign' : `spread across ${a.list.length} advertisers`;
+    paragraphs.push(`<p>Spending splits sharply by party: <strong>${a.party}</strong> advertisers account for <strong>${fmtPct(a.share)}</strong> of tracked spend, ${aConcentrated}; <strong>${b.party}</strong> advertisers hold <strong>${fmtPct(b.share)}</strong> across ${b.list.length} advertiser${b.list.length===1?'':'s'}, led by <strong>${b.list[0].name}</strong> at ${fmtCompact(b.list[0].total)}.</p>`);
+  }
+
+  if (topPlatform && secondPlatform) {
+    const combinedShare = (topPlatform.total + secondPlatform.total) / DATA.grand_total * 100;
+    paragraphs.push(`<p>By platform, <strong>${platformLabel(topPlatform)}</strong> (${fmtCompact(topPlatform.total)}) and <strong>${platformLabel(secondPlatform)}</strong> (${fmtCompact(secondPlatform.total)}) lead the buy, together carrying <strong>${fmtPct(combinedShare)}</strong> of all tracked dollars.</p>`);
+  }
+
+  box.innerHTML = paragraphs.join('\n');
+})();
+
+// ---------------- generic stacked bar chart ----------------
+function renderStackedBar(opts) {
+  const { scrollHost, tooltipHost, legendHost, series, labels } = opts;
+  const n = labels.length;
+  const colW = 21, barGap = 4;
+  const chartW = n * colW + 24;
+  const chartH = 300;
+  const padL = 54, padR = 14, padT = 14, padB = 34;
+  const plotW = chartW - padL - padR;
+  const plotH = chartH - padT - padB;
+
+  const totals = labels.map((_, i) => series.reduce((s, ser) => s + ser.values[i], 0));
+  const maxTotal = Math.max(...totals, 1);
+  // nice y max
+  const magnitude = Math.pow(10, Math.floor(Math.log10(maxTotal)));
+  const niceMax = Math.ceil(maxTotal / (magnitude/2)) * (magnitude/2);
+
+  scrollHost.innerHTML = '';
+  const svg = el('svg', { width: chartW, height: chartH, viewBox: `0 0 ${chartW} ${chartH}` });
+
+  // gridlines + y labels
+  const ticks = 4;
+  for (let t = 0; t <= ticks; t++) {
+    const val = niceMax * t / ticks;
+    const y = padT + plotH - (val/niceMax)*plotH;
+    svg.appendChild(el('line', { x1: padL, x2: chartW-padR, y1: y, y2: y, stroke: cssVar('--grid'), 'stroke-width': 1 }));
+    const txt = el('text', { x: padL-8, y: y+4, 'text-anchor':'end', 'font-size':10.5, 'font-family':'Figtree', fill: cssVar('--ink-muted') });
+    txt.textContent = fmtCompact(val);
+    svg.appendChild(txt);
+  }
+  // baseline axis
+  svg.appendChild(el('line', { x1: padL, x2: chartW-padR, y1: padT+plotH, y2: padT+plotH, stroke: cssVar('--axis'), 'stroke-width': 1 }));
+
+  const barsG = el('g');
+  svg.appendChild(barsG);
+
+  for (let i = 0; i < n; i++) {
+    const x = padL + i*colW + barGap/2;
+    const w = colW - barGap;
+    let cum = 0;
+    series.forEach((ser, si) => {
+      const v = ser.values[i];
+      if (v <= 0) { return; }
+      const hFull = (v/niceMax)*plotH;
+      const y0 = padT + plotH - (cum/niceMax)*plotH;
+      cum += v;
+      const isTop = si === series.map((s2,i2)=>i2).filter(i2=>series[i2].values[i]>0).pop();
+      const gap = 1.1;
+      const h = Math.max(hFull - gap*2, 0);
+      const y = y0 - hFull + gap;
+      const rect = el('rect', {
+        x, y, width: w, height: h,
+        fill: seriesColor(ser),
+        rx: isTop ? 3 : 0,
+        ry: isTop ? 3 : 0,
+        class: 'bar-seg'
+      });
+      rect.dataset.week = i;
+      barsG.appendChild(rect);
+    });
+  }
+
+  // x labels — every ~5th week, plus last
+  const step = Math.ceil(n/11);
+  for (let i = 0; i < n; i += step) {
+    const x = padL + i*colW + colW/2;
+    const txt = el('text', { x, y: chartH-padB+16, 'text-anchor':'middle', 'font-size':10, 'font-family':'Figtree', fill: cssVar('--ink-muted') });
+    txt.textContent = labels[i];
+    svg.appendChild(txt);
+  }
+  if ((n-1) % step !== 0) {
+    const i = n-1, x = padL + i*colW + colW/2;
+    const txt = el('text', { x, y: chartH-padB+16, 'text-anchor':'middle', 'font-size':10, 'font-family':'Figtree', fill: cssVar('--ink-muted') });
+    txt.textContent = labels[i];
+    svg.appendChild(txt);
+  }
+
+  // hover columns
+  const highlight = el('rect', { x:0, y: padT, width: colW, height: plotH, fill: cssVar('--ink-primary'), opacity: 0 });
+  svg.insertBefore(highlight, barsG);
+
+  for (let i = 0; i < n; i++) {
+    const hit = el('rect', { x: padL + i*colW, y: padT, width: colW, height: plotH, class: 'col-hit' });
+    hit.addEventListener('mouseenter', () => {
+      highlight.setAttribute('x', padL + i*colW);
+      highlight.setAttribute('opacity', 0.05);
+    });
+    hit.addEventListener('mousemove', (ev) => showTooltip(ev, i));
+    hit.addEventListener('mouseleave', () => {
+      highlight.setAttribute('opacity', 0);
+      tooltipHost.classList.remove('show');
+    });
+    svg.appendChild(hit);
+  }
+
+  scrollHost.appendChild(svg);
+
+  function showTooltip(ev, i) {
+    const rows = series.filter(s => s.values[i] > 0.5)
+      .sort((a,b)=>b.values[i]-a.values[i])
+      .map(s => `<div class="tt-row"><span class="tt-key" style="background:${seriesColor(s)}"></span><span class="tt-name"></span><span class="tt-val">${fmtFull(s.values[i])}</span></div>`);
+    tooltipHost.innerHTML = `<div class="tt-date">${labels[i]}</div>${rows.join('')}<div class="tt-total"><span>Total</span><span>${fmtFull(totals[i])}</span></div>`;
+    // set names via textContent (untrusted-safe)
+    const nameEls = tooltipHost.querySelectorAll('.tt-name');
+    const sorted = series.filter(s => s.values[i] > 0.5).sort((a,b)=>b.values[i]-a.values[i]);
+    sorted.forEach((s, idx) => { nameEls[idx].textContent = s.label || s.name || s.key; });
+
+    const hostRect = scrollHost.parentElement.getBoundingClientRect();
+    const scrollRect = scrollHost.getBoundingClientRect();
+    let left = (padL + i*colW) + scrollHost.scrollLeft - scrollHost.scrollLeft; // relative within svg
+    const svgLeftInScroll = i*colW + padL;
+    let tx = svgLeftInScroll - scrollHost.scrollLeft + 16;
+    if (tx > scrollRect.width - 200) tx = svgLeftInScroll - scrollHost.scrollLeft - 210;
+    tooltipHost.style.left = Math.max(0, tx) + 'px';
+    tooltipHost.style.top = '6px';
+    tooltipHost.classList.add('show');
+  }
+
+  // legend
+  legendHost.innerHTML = '';
+  series.forEach(s => {
+    const item = document.createElement('div'); item.className = 'legend-item';
+    const sw = document.createElement('span'); sw.className = 'legend-swatch'; sw.style.background = seriesColor(s);
+    const label = document.createElement('span'); label.textContent = s.label || s.name || s.key;
+    const n = document.createElement('span'); n.className = 'n'; n.textContent = fmtCompact(s.total);
+    item.appendChild(sw); item.appendChild(label); item.appendChild(n);
+    legendHost.appendChild(item);
+  });
+
+  return { svg, rerenderColors: () => {
+    barsG.querySelectorAll('rect.bar-seg').forEach((r, idx) => {});
+  }};
+}
+
+let chartRefs = [];
+function renderAllCharts() {
+  chartRefs = [];
+  chartRefs.push(renderStackedBar({
+    scrollHost: document.getElementById('chart-platform-scroll'),
+    tooltipHost: document.getElementById('tooltip-platform'),
+    legendHost: document.getElementById('legend-platform'),
+    series: DATA.platform_series,
+    labels: DATA.week_labels
+  }));
+  chartRefs.push(renderStackedBar({
+    scrollHost: document.getElementById('chart-advertiser-scroll'),
+    tooltipHost: document.getElementById('tooltip-advertiser'),
+    legendHost: document.getElementById('legend-advertiser'),
+    series: DATA.top_series,
+    labels: DATA.week_labels
+  }));
+}
+renderAllCharts();
+
+// ---------------- table ----------------
+const PARTY_ABBR = { Republican: 'GOP', Democrat: 'DEM', Independent: 'IND', Nonpartisan: 'N/P' };
+function partyAbbr(party) {
+  return PARTY_ABBR[party] || (party || 'OTHER').slice(0, 4).toUpperCase();
+}
+function partyColorPair(party) {
+  const c = DATA.party_colors[party] || DATA.party_colors['__default__'];
+  return [c.light, c.dark];
+}
+
+function renderTable(){
+  const sub = document.getElementById('table-sub');
+  sub.textContent = DATA.advertiser_rows.length + ' advertisers have run ' + DATA.meta.media_types + ' ads in this race since ' + DATA.week_labels[0] + ', ranked by total tracked spend.';
+
+  const tbody = document.getElementById('table-body');
+  tbody.innerHTML = '';
+  const platColors = DATA.platform_colors;
+  const maxSpark = Math.max(...DATA.advertiser_rows.flatMap(r=>r.weekly));
+
+  DATA.advertiser_rows.forEach(r => {
+    const tr = document.createElement('tr');
+    const [pLight, pDark] = partyColorPair(r.party);
+
+    const tdName = document.createElement('td');
+    const nm = document.createElement('span'); nm.className='adv-name'; nm.textContent = r.name;
+    const tp = document.createElement('span'); tp.className='adv-type'; tp.textContent = r.atype;
+    tdName.appendChild(nm); tdName.appendChild(tp);
+
+    const tdParty = document.createElement('td');
+    const pill = document.createElement('span');
+    pill.className = 'party-pill';
+    const c = isDark() ? pDark : pLight;
+    pill.style.setProperty('--pill-bg', c + '1f');
+    pill.style.setProperty('--pill-ink', c);
+    pill.style.setProperty('--pill-dot', c);
+    const dot = document.createElement('span'); dot.className='dot';
+    pill.appendChild(dot);
+    pill.appendChild(document.createTextNode(partyAbbr(r.party)));
+    tdParty.appendChild(pill);
+
+    const tdSpark = document.createElement('td');
+    tdSpark.appendChild(makeSparkline(r.weekly, isDark() ? pDark : pLight, maxSpark));
+
+    const tdMix = document.createElement('td');
+    tdMix.appendChild(makeMixBar(r.platform, r.total, platColors));
+
+    const tdTotal = document.createElement('td'); tdTotal.className='num'; tdTotal.textContent = fmtFull(r.total);
+    const tdShare = document.createElement('td'); tdShare.className='num'; tdShare.textContent = fmtPct(r.share);
+
+    tr.appendChild(tdName); tr.appendChild(tdParty); tr.appendChild(tdSpark);
+    tr.appendChild(tdMix); tr.appendChild(tdTotal); tr.appendChild(tdShare);
+    tbody.appendChild(tr);
+  });
+
+  function makeSparkline(values, color, maxV) {
+    const w = 130, h = 30, pad = 3;
+    const svg = el('svg', { width: w, height: h, viewBox: `0 0 ${w} ${h}`, class:'spark' });
+    const n = values.length;
+    const pts = values.map((v,i) => {
+      const x = pad + (i/(n-1)) * (w-2*pad);
+      const y = h - pad - (maxV>0 ? (v/maxV) : 0) * (h-2*pad);
+      return [x,y];
+    });
+    const areaPts = pts.map(p=>p.join(',')).join(' ');
+    const area = el('polygon', {
+      points: `${pad},${h-pad} ${areaPts} ${w-pad},${h-pad}`,
+      fill: color, opacity: 0.14
+    });
+    const line = el('polyline', { points: areaPts, fill:'none', stroke: color, 'stroke-width': 1.6, 'stroke-linejoin':'round', 'stroke-linecap':'round' });
+    const last = pts[pts.length-1];
+    const dot = el('circle', { cx: last[0], cy: last[1], r: 2.6, fill: color });
+    svg.appendChild(area); svg.appendChild(line); svg.appendChild(dot);
+    return svg;
+  }
+
+  function makeMixBar(platform, total, colors) {
+    const wrap = document.createElement('div'); wrap.className = 'mix-bar';
+    const entries = Object.entries(platform).sort((a,b)=>b[1]-a[1]);
+    entries.forEach(([k,v]) => {
+      const seg = document.createElement('span');
+      const pct = total>0 ? (v/total*100) : 0;
+      seg.style.width = pct + '%';
+      seg.style.background = isDark() ? colors[k].dark : colors[k].light;
+      seg.title = k + ': ' + fmtFull(v);
+      wrap.appendChild(seg);
+    });
+    wrap.title = entries.map(([k,v])=>k+': '+fmtFull(v)).join('  ·  ');
+    return wrap;
+  }
+}
+renderTable();
+
+// ---------------- footer ----------------
+(function(){
+  const f = document.getElementById('footer-note');
+  const gapNote = DATA.meta.filled_gap_weeks && DATA.meta.filled_gap_weeks.length
+    ? ` Weeks with zero spend across every advertiser (${DATA.meta.filled_gap_weeks.join(', ')}) are shown at $0 rather than omitted, so the weekly axis stays chronologically continuous.`
+    : '';
+  const exportNote = DATA.meta.export_date ? ` Export date: ${DATA.meta.export_date}.` : '';
+  const paragraphs = [
+    `<p><strong>Source &amp; methodology.</strong> Figures pulled from AdImpact's "Spending Chart" export${DATA.meta.race ? `, filtered to Race = ${DATA.meta.race}` : ''}${DATA.meta.media_types ? `, Media Types = ${DATA.meta.media_types}` : ''}, grouped by Party &rarr; Advertiser Type &rarr; Advertiser &rarr; Market &rarr; Media Type &rarr; Station, and re-aggregated here to the platform (station) and advertiser level.${gapNote}${exportNote}</p>`,
+    `<p>The most recent week (${DATA.week_labels[DATA.week_labels.length-1]}) may still be accruing spend as of the export date and should be read as partial, not final.</p>`,
+    `<p>Generated automatically from a raw AdImpact export.</p>`
+  ];
+  f.innerHTML = paragraphs.join('\n');
+})();
+
+// re-render on theme toggle
+const mo = new MutationObserver(() => { renderAllCharts(); renderTable(); });
+mo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+if (window.matchMedia) {
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { renderAllCharts(); renderTable(); });
+}
+
+})();
+</script>

@@ -1,0 +1,13 @@
+# Client spending data and generated reports contain competitive
+# intelligence that shouldn't land in version control.
+*.xlsx
+*.xls
+/reports/
+/output/
+report.html
+DigitalCompetitiveReport_*.html
+
+__pycache__/
+*.pyc
+.venv/
+.DS_Store
