@@ -263,14 +263,20 @@ def _write_main_sheet(wb, tree, week_labels, n_weeks, title):
                 for mtype, stations in types.items():
                     type_start = w.row
                     w.write_group_label(3, type_start, mtype)
-                    ranked_stations = sorted(stations.items(), key=lambda kv: -sum(kv[1]))
-                    for station, weekly in ranked_stations:
-                        w.write_leaf(station, sum(weekly), weekly)
-                    type_end = w.row - 1
-                    w.merge_col(3, type_start, type_end)  # TYPE column
-
                     type_weekly = _sum_lists(stations.values(), n_weeks)
-                    w.write_subtotal(f"{market} - {mtype} Total", sum(type_weekly), type_weekly)
+
+                    if mtype.strip().upper() == "CTV":
+                        # All CTV platforms (In-App, Device, Streaming, ...)
+                        # roll into one combined line per market rather than
+                        # breaking out by individual platform.
+                        w.write_subtotal(f"{market} - {mtype} Total", sum(type_weekly), type_weekly)
+                    else:
+                        ranked_stations = sorted(stations.items(), key=lambda kv: -sum(kv[1]))
+                        for station, weekly in ranked_stations:
+                            w.write_leaf(station, sum(weekly), weekly)
+                        type_end = w.row - 1
+                        w.merge_col(3, type_start, type_end)  # TYPE column
+                        w.write_subtotal(f"{market} - {mtype} Total", sum(type_weekly), type_weekly)
                 market_end = w.row - 1
                 w.merge_col(2, market_start, market_end)  # MARKET column
 
@@ -323,19 +329,41 @@ def _write_market_summary_sheet(wb, tree, n_weeks):
             c = ws.cell(row, 1, adv)
             c.font = Font(name=FONT_NAME, bold=True, size=11, color=TEXT_DARK)
             row += 1
-            for col, text in enumerate(["MARKET / TYPE", "SPEND"], start=1):
+            for col, text in enumerate(["MARKET", "SPEND"], start=1):
                 c = ws.cell(row, col, text)
                 c.font = Font(name=FONT_NAME, bold=True, size=9, color="FFFFFF")
                 c.fill = _fill(NAVY)
             row += 1
+
+            # Group by media type first (all CTV markets together, all
+            # Digital markets together), each with its own type total,
+            # biggest type first.
+            by_type = {}
             for market, types in markets.items():
                 for mtype, stations in types.items():
                     total = sum(_sum_lists(stations.values(), n_weeks))
-                    ws.cell(row, 1, f"{market} — {mtype}").font = Font(name=FONT_NAME, size=9, color=TEXT_DARK)
+                    by_type.setdefault(mtype, []).append((market, total))
+            ranked_types = sorted(by_type.items(), key=lambda kv: -sum(t for _, t in kv[1]))
+
+            for mtype, market_totals in ranked_types:
+                c = ws.cell(row, 1, mtype.upper())
+                c.font = Font(name=FONT_NAME, bold=True, size=9, color=TEXT_DARK)
+                row += 1
+                for market, total in sorted(market_totals, key=lambda x: -x[1]):
+                    ws.cell(row, 1, market).font = Font(name=FONT_NAME, size=9, color=TEXT_DARK)
                     e = ws.cell(row, 2, total)
                     e.number_format = TOTAL_CURRENCY
                     e.font = Font(name=FONT_NAME, size=9, color=TEXT_DARK)
                     row += 1
+                c = ws.cell(row, 1, f"{mtype} Total")
+                c.font = Font(name=FONT_NAME, bold=True, size=9, color=TEXT_DARK)
+                c.fill = _fill(SUBTOTAL_FILL)
+                e = ws.cell(row, 2, sum(t for _, t in market_totals))
+                e.number_format = TOTAL_CURRENCY
+                e.font = Font(name=FONT_NAME, bold=True, size=9, color=TEXT_DARK)
+                e.fill = _fill(SUBTOTAL_FILL)
+                row += 1
+
             c = ws.cell(row, 1, f"{adv} — Total")
             c.font = Font(name=FONT_NAME, bold=True, size=9, color=TEXT_DARK)
             c.fill = _fill(ADV_TOTAL_FILL)
