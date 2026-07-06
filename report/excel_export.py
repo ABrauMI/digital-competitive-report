@@ -718,7 +718,7 @@ def _write_creative_timeline_sheet(wb, creative_rows, party_lookup, week_iso, we
     for col_letter, w in widths.items():
         ws.column_dimensions[col_letter].width = w
     for i in range(n_weeks):
-        ws.column_dimensions[get_column_letter(n_fixed + 1 + i)].width = 5
+        ws.column_dimensions[get_column_letter(n_fixed + 1 + i)].width = 5.5
     ws.freeze_panes = f"{get_column_letter(frozen_cols + 1)}{header_row + 1}"
 
     by_party = {}

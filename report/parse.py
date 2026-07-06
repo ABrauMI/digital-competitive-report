@@ -286,8 +286,9 @@ def build_creative_week_axis(creative_rows):
     """Continuous Tuesday-start weekly axis spanning every creative's flight.
 
     Returns (week_iso, week_labels) — week_iso for lookups, week_labels
-    ("M/D/YY") for display, both aligned to the same Tuesday->Monday
-    media-week convention as the spending report.
+    ("M/D", no year — these head narrow Gantt-bar columns with no room
+    for one) both aligned to the same Tuesday->Monday media-week
+    convention as the spending report.
     """
     starts = [_tuesday_on_or_before(r["start"]) for r in creative_rows]
     ends = [_tuesday_on_or_before(r["end"]) for r in creative_rows]
@@ -298,7 +299,7 @@ def build_creative_week_axis(creative_rows):
         weeks.append(d)
         d += timedelta(days=7)
     week_iso = [d.strftime("%Y-%m-%d") for d in weeks]
-    week_labels = [d.strftime("%-m/%-d/%y") for d in weeks]
+    week_labels = [d.strftime("%-m/%-d") for d in weeks]
     return week_iso, week_labels
 
 
