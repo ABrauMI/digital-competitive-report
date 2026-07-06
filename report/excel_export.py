@@ -107,13 +107,21 @@ class _Writer:
         ws = self.ws
         ws.sheet_view.showGridLines = False
         last_col = 5 + self.n_weeks
+        frozen_cols = 5  # A:E — must match the column freeze_panes below fixes in place
 
         for col in range(1, last_col + 1):
             ws.cell(1, col).fill = _fill(NAVY)
-        ws.merge_cells(start_row=1, start_column=4, end_row=1, end_column=last_col)
-        c = ws.cell(1, 4, title)
-        c.font = Font(name=FONT_NAME, bold=True, size=16, color="FFFFFF")
-        c.alignment = Alignment(horizontal="left", vertical="center")
+
+        # Two merges, not one: a merged cell can't straddle a freeze-pane
+        # split without rendering oddly once you scroll, so the title stays
+        # inside the frozen columns and the rest of the navy band is a
+        # second, separate merge entirely in the scrollable region.
+        ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=frozen_cols)
+        c = ws.cell(1, 1, title)
+        c.font = Font(name=FONT_NAME, bold=True, size=14, color="FFFFFF")
+        c.alignment = Alignment(horizontal="right", vertical="center", wrap_text=True, indent=1)
+        if last_col > frozen_cols:
+            ws.merge_cells(start_row=1, start_column=frozen_cols + 1, end_row=1, end_column=last_col)
         ws.row_dimensions[1].height = 49.5
 
         if LOGO_FILE.exists():
@@ -138,7 +146,7 @@ class _Writer:
         for i in range(self.n_weeks):
             ws.column_dimensions[get_column_letter(6 + i)].width = 13
 
-        ws.freeze_panes = "F4"
+        ws.freeze_panes = f"{get_column_letter(frozen_cols + 1)}{FIRST_DATA_ROW}"
         self.row = FIRST_DATA_ROW
 
     def _write_row(self, total_value, weekly_values, fill, bold, text_color, border, font_size=9,
