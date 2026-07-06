@@ -268,8 +268,10 @@ def _write_main_sheet(wb, tree, week_labels, n_weeks, title):
                     if mtype.strip().upper() == "CTV":
                         # All CTV platforms (In-App, Device, Streaming, ...)
                         # roll into one combined line per market rather than
-                        # breaking out by individual platform.
-                        w.write_subtotal(f"{market} - {mtype} Total", sum(type_weekly), type_weekly)
+                        # breaking out by individual platform. It's a plain
+                        # data row now, not a rollup of visible rows above
+                        # it, so it gets leaf styling/label, not subtotal.
+                        w.write_leaf(f"{market} - {mtype}", sum(type_weekly), type_weekly)
                     else:
                         ranked_stations = sorted(stations.items(), key=lambda kv: -sum(kv[1]))
                         for station, weekly in ranked_stations:
