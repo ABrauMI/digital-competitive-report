@@ -25,21 +25,39 @@ BRAND_BLUE = "3d6a91"
 BRAND_RED = "de5e4e"
 BRAND_PALE_BLUE = "bed7d5"
 
-# Rollup-level shade ramp: light-to-dark tints of BRAND_BLUE, ending in
-# BRAND_BLUE itself (party total) and BRAND_NAVY (header/grand total) — see
-# README.md#color-choices for how these tints were derived.
 NAVY = BRAND_NAVY
 HEADER_ACCENT = BRAND_RED
-LEAF_FILL = "ecf0f4"
-SUBTOTAL_FILL = "d4dee7"
-TYPE_TOTAL_FILL = "c5d2de"
-ADV_TOTAL_FILL = "b5c6d5"
-PARTY_TOTAL_FILL = BRAND_BLUE
 GRAND_FILL = BRAND_NAVY
 TEXT_DARK = BRAND_NAVY
 BORDER_LIGHT = "E5E7EB"
 BORDER_MED = "CCCCCC"
 FOOTER_GRAY = "6B7280"
+
+# Each advertiser's whole block (leaf -> market/type subtotal -> type total
+# -> advertiser total) is shaded in a light-to-dark tint ramp of its party's
+# color instead of one blue ramp for everyone — a shade of GOP red for
+# Republican advertisers, brand blue for Democrats, neutral gray for
+# anything else (Independent, Nonpartisan, ...). Each ramp is four tints
+# (10%/22%/30%/38% toward white) of the party color, landing on the full
+# color itself for the party-total row. See README.md#color-choices.
+PARTY_RAMPS = {
+    "Republican": {
+        "leaf": "fcefed", "subtotal": "f8dcd8", "type_total": "f5cfca", "adv_total": "f2c2bc",
+        "party_total": BRAND_RED,
+    },
+    "Democrat": {
+        "leaf": "ecf0f4", "subtotal": "d4dee7", "type_total": "c5d2de", "adv_total": "b5c6d5",
+        "party_total": BRAND_BLUE,
+    },
+}
+DEFAULT_RAMP = {
+    "leaf": "f3f4f6", "subtotal": "e5e6ea", "type_total": "dcdde2", "adv_total": "d3d4db",
+    "party_total": "8a8fa0",
+}
+
+
+def _ramp_for(party):
+    return PARTY_RAMPS.get(party, DEFAULT_RAMP)
 
 LEAF_CURRENCY = '$#,##0;-$#,##0;""'
 TOTAL_CURRENCY = "$#,##0"
@@ -102,7 +120,12 @@ class _Writer:
         self.n_weeks = n_weeks
         self.week_labels = week_labels
         self.row = 1
+        self.ramp = DEFAULT_RAMP
         self._write_scaffold(title)
+
+    def set_party(self, party):
+        """Every write_* call after this uses `party`'s color ramp."""
+        self.ramp = _ramp_for(party)
 
     def _write_scaffold(self, title):
         ws = self.ws
@@ -174,9 +197,10 @@ class _Writer:
     def write_leaf(self, station, total, weekly):
         r = self.row
         ws = self.ws
+        leaf_fill = self.ramp["leaf"]
         ws.cell(r, 4, station).font = Font(name=FONT_NAME, size=9, color=TEXT_DARK)
         for col in (1, 2, 3, 4, 5):
-            ws.cell(r, col).fill = _fill(LEAF_FILL)
+            ws.cell(r, col).fill = _fill(leaf_fill)
             ws.cell(r, col).border = _thin_border(BORDER_LIGHT)
         ws.cell(r, 5, total).number_format = LEAF_CURRENCY
         ws.cell(r, 5).font = Font(name=FONT_NAME, size=9, color=TEXT_DARK)
@@ -184,26 +208,26 @@ class _Writer:
             cc = ws.cell(r, 6 + i, v if v else None)
             cc.number_format = LEAF_CURRENCY
             cc.font = Font(name=FONT_NAME, size=9, color=TEXT_DARK)
-            cc.fill = _fill(LEAF_FILL)
+            cc.fill = _fill(leaf_fill)
             cc.border = _thin_border(BORDER_LIGHT)
         self.row += 1
         return r
 
     def write_subtotal(self, label, total, weekly):
-        return self._write_row(total, weekly, SUBTOTAL_FILL, True, TEXT_DARK, _thin_border(BORDER_MED),
+        return self._write_row(total, weekly, self.ramp["subtotal"], True, TEXT_DARK, _thin_border(BORDER_MED),
                                 currency=TOTAL_CURRENCY, label=label)
 
     def write_type_total(self, label, total, weekly):
-        return self._write_row(total, weekly, TYPE_TOTAL_FILL, True, TEXT_DARK, _thin_border(BORDER_MED),
+        return self._write_row(total, weekly, self.ramp["type_total"], True, TEXT_DARK, _thin_border(BORDER_MED),
                                 currency=TOTAL_CURRENCY, label=label)
 
     def write_advertiser_total(self, label, total, weekly):
-        return self._write_row(total, weekly, ADV_TOTAL_FILL, True, TEXT_DARK, _medium_border(BORDER_MED),
+        return self._write_row(total, weekly, self.ramp["adv_total"], True, TEXT_DARK, _medium_border(BORDER_MED),
                                 currency=TOTAL_CURRENCY, label=label)
 
     def write_party_total(self, label, total, weekly):
         return self._write_row(
-            total, weekly, PARTY_TOTAL_FILL, True, "FFFFFF", _medium_border("FFFFFF"), font_size=10,
+            total, weekly, self.ramp["party_total"], True, "FFFFFF", _medium_border("FFFFFF"), font_size=10,
             currency=TOTAL_CURRENCY, label=label, label_col=1,
         )
 
@@ -251,6 +275,7 @@ def _write_main_sheet(wb, tree, week_labels, n_weeks, title):
     )))
 
     for party, advertisers in parties:
+        w.set_party(party)
         adv_totals = {
             adv: _sum_lists([s for mk in markets.values() for tp in mk.values() for s in tp.values()], n_weeks)
             for adv, markets in advertisers.items()
@@ -342,7 +367,8 @@ def _write_market_summary_sheet(wb, tree, n_weeks):
     )))
 
     row = 3
-    for _, advertisers in parties:
+    for party, advertisers in parties:
+        ramp = _ramp_for(party)
         adv_totals = {
             adv: sum(_sum_lists([s for mk in markets.values() for tp in mk.values() for s in tp.values()], n_weeks))
             for adv, markets in advertisers.items()
@@ -382,20 +408,20 @@ def _write_market_summary_sheet(wb, tree, n_weeks):
                     row += 1
                 c = ws.cell(row, 1, f"{mtype} Total")
                 c.font = Font(name=FONT_NAME, bold=True, size=9, color=TEXT_DARK)
-                c.fill = _fill(SUBTOTAL_FILL)
+                c.fill = _fill(ramp["subtotal"])
                 e = ws.cell(row, 2, sum(t for _, t in market_totals))
                 e.number_format = TOTAL_CURRENCY
                 e.font = Font(name=FONT_NAME, bold=True, size=9, color=TEXT_DARK)
-                e.fill = _fill(SUBTOTAL_FILL)
+                e.fill = _fill(ramp["subtotal"])
                 row += 1
 
             c = ws.cell(row, 1, f"{adv} — Total")
             c.font = Font(name=FONT_NAME, bold=True, size=9, color=TEXT_DARK)
-            c.fill = _fill(ADV_TOTAL_FILL)
+            c.fill = _fill(ramp["adv_total"])
             e = ws.cell(row, 2, adv_totals[adv])
             e.number_format = TOTAL_CURRENCY
             e.font = Font(name=FONT_NAME, bold=True, size=9, color=TEXT_DARK)
-            e.fill = _fill(ADV_TOTAL_FILL)
+            e.fill = _fill(ramp["adv_total"])
             row += 2
     return ws
 

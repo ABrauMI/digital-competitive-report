@@ -133,12 +133,25 @@ header-accent red was `#ED492E`, not the brand's `#323b51` / `#de5e4e`):
 - Header band, grand total, and the GPS Impact logo (embedded in the header,
   `assets/logos/GPSImpact_White_Horizontal_2026.png`): brand Navy `#323b51`
 - Header underline accent: brand Red `#de5e4e`
-- Rollup shade ramp (leaf → market/type subtotal → advertiser total → party
-  total): light-to-dark tints of brand Blue `#3d6a91`, landing on brand Blue
-  itself for the party-total row
 - Body text: brand Navy `#323b51`
 - Footer line ("Report prepared by GPS Impact | Confidential"): neutral gray,
   matching the linear template's own footer convention
+
+Each advertiser's whole block (leaf rows → market/type subtotal → CTV/Digital
+type total → advertiser total) is shaded in a light-to-dark tint ramp of
+**its own party's color** rather than one blue ramp for everyone —
+`PARTY_RAMPS` in `report/excel_export.py`:
+
+| Party | Ramp | Party-total row |
+|---|---|---|
+| Republican | tints of brand Red `#de5e4e` | solid `#de5e4e` |
+| Democrat | tints of brand Blue `#3d6a91` | solid `#3d6a91` |
+| anything else (Independent, Nonpartisan, ...) | tints of neutral gray | solid gray |
+
+Grand Total always stays neutral Navy — it isn't party-specific. To add a
+party the ramp doesn't cover yet, add an entry to `PARTY_RAMPS` with the same
+four tint steps (10%/22%/30%/38% toward white, landing on the full color) so
+the hierarchy still reads the same way.
 
 ## Data & confidentiality
 
