@@ -32,6 +32,7 @@ NAVY = BRAND_NAVY
 HEADER_ACCENT = BRAND_RED
 LEAF_FILL = "ecf0f4"
 SUBTOTAL_FILL = "d4dee7"
+TYPE_TOTAL_FILL = "c5d2de"
 ADV_TOTAL_FILL = "b5c6d5"
 PARTY_TOTAL_FILL = BRAND_BLUE
 GRAND_FILL = BRAND_NAVY
@@ -192,6 +193,10 @@ class _Writer:
         return self._write_row(total, weekly, SUBTOTAL_FILL, True, TEXT_DARK, _thin_border(BORDER_MED),
                                 currency=TOTAL_CURRENCY, label=label)
 
+    def write_type_total(self, label, total, weekly):
+        return self._write_row(total, weekly, TYPE_TOTAL_FILL, True, TEXT_DARK, _thin_border(BORDER_MED),
+                                currency=TOTAL_CURRENCY, label=label)
+
     def write_advertiser_total(self, label, total, weekly):
         return self._write_row(total, weekly, ADV_TOTAL_FILL, True, TEXT_DARK, _medium_border(BORDER_MED),
                                 currency=TOTAL_CURRENCY, label=label)
@@ -257,10 +262,23 @@ def _write_main_sheet(wb, tree, week_labels, n_weeks, title):
         for adv, markets in ranked_advs:
             adv_start = w.row
             w.write_group_label(1, adv_start, adv)
+
+            # Group by media type first so every CTV market is together,
+            # every Digital market is together, and each group gets its own
+            # rolled-up total for the advertiser.
+            by_type = {}
             for market, types in markets.items():
-                market_start = w.row
-                w.write_group_label(2, market_start, market)
                 for mtype, stations in types.items():
+                    by_type.setdefault(mtype, {})[market] = stations
+            ranked_types = sorted(
+                by_type.items(),
+                key=lambda kv: -sum(sum(weekly) for stations in kv[1].values() for weekly in stations.values()),
+            )
+
+            for mtype, market_map in ranked_types:
+                for market, stations in market_map.items():
+                    market_start = w.row
+                    w.write_group_label(2, market_start, market)
                     type_start = w.row
                     w.write_group_label(3, type_start, mtype)
                     type_weekly = _sum_lists(stations.values(), n_weeks)
@@ -279,8 +297,13 @@ def _write_main_sheet(wb, tree, week_labels, n_weeks, title):
                         type_end = w.row - 1
                         w.merge_col(3, type_start, type_end)  # TYPE column
                         w.write_subtotal(f"{market} - {mtype} Total", sum(type_weekly), type_weekly)
-                market_end = w.row - 1
-                w.merge_col(2, market_start, market_end)  # MARKET column
+                    market_end = w.row - 1
+                    w.merge_col(2, market_start, market_end)  # MARKET column
+
+                type_total_weekly = _sum_lists(
+                    [s for stations in market_map.values() for s in stations.values()], n_weeks
+                )
+                w.write_type_total(f"{mtype.upper()} TOTAL", sum(type_total_weekly), type_total_weekly)
 
             w.write_advertiser_total(f"{adv} Total", sum(adv_totals[adv]), adv_totals[adv])
             adv_end = w.row - 1
