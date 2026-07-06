@@ -35,6 +35,10 @@ In AdMo+ / AdImpact, pull a **Spending Chart** export:
 Both generators auto-detect the race and media types from the export's
 header block.
 
+Optionally, also pull a **Topline Creatives** export (Rows: `Creative
+(FPUUID)`, same race/media-type filters) to get a Creative Timeline tab —
+see `--creative` below.
+
 ## `generate_excel_report.py`
 
 Produces a workbook with three sheets, in this tab order (Competitive
@@ -65,6 +69,23 @@ Report opens as the active tab):
   Override with `--current-week YYYY-MM-DD` (the Tuesday it starts on) to
   pin a specific week — for regenerating a past week's report, or for
   testing without waiting for a real Tuesday.
+- **Creative Timeline** (only with `--creative`, appended last) — one row
+  per creative, grouped by party then advertiser (same red/blue shading as
+  the rest of the workbook), sorted chronologically within each advertiser.
+  Candidate/Committee, Creative title, Platform (CTV or Digital — a
+  creative in this export is always exactly one, never both), Tone, Total
+  Spend, Start/End Date, then a shaded bar across every media week the
+  flight overlapped. A shaded week means "live at some point that week,"
+  not necessarily the full week — flights rarely start or end on a
+  Tuesday. Its own week axis, independent of the spending file's, spanning
+  from the earliest creative's start to the latest one's end.
+
+  The Topline Creatives export has no Party column of its own — party
+  coloring is looked up by advertiser name from the Spending Chart export,
+  so `--spending` and `--creative` should be pulled for the same race.
+  Broadcast/Cable spend columns in that export are read and discarded; if
+  you pulled it filtered to Media Type = CTV, Digital (as documented
+  above) they're $0 anyway, not just irrelevant.
 
 On both the main sheet and This Week, CTV platforms (In-App, Device,
 Streaming, ...) roll into a single combined line per market instead of
@@ -83,6 +104,7 @@ fabricate from spend).
 | `--output` | `competitive_report.xlsx` | Output path |
 | `--title` | derived | Overrides the report title |
 | `--current-week` | today's media week | Pins the This Week tab to a specific week (`YYYY-MM-DD`, the Tuesday it starts on) |
+| `--creative` | *(none)* | Path to an AdImpact Topline Creatives `.xlsx` export — adds the Creative Timeline tab |
 
 ## `generate_report.py` (HTML dashboard)
 

@@ -25,6 +25,11 @@ def main():
              "instead of deriving it from today's date in America/New_York. Use this to regenerate a "
              "past week's report or to test without waiting for a real Tuesday.",
     )
+    p.add_argument(
+        "--creative",
+        help="Path to an AdImpact Topline Creatives .xlsx export. Adds a Creative Timeline tab showing "
+             "which creatives ran where and when. Optional.",
+    )
     args = p.parse_args()
 
     week_cols, week_starts, leaf_rows, meta = parse.load_spending_export(args.spending)
@@ -38,12 +43,16 @@ def main():
 
     this_week_iso = args.current_week or parse.current_media_week_iso()
 
+    creative_rows = parse.load_creative_export(args.creative) if args.creative else None
+
     write_excel_report(
         leaf_rows, index_map, week_labels, args.output, title=title,
-        week_iso=week_iso, this_week_iso=this_week_iso,
+        week_iso=week_iso, this_week_iso=this_week_iso, creative_rows=creative_rows,
     )
     print(f"Wrote {args.output}")
     print(f"  This Week tab: {this_week_iso}" + (" (not in export)" if this_week_iso not in week_iso else ""))
+    if creative_rows is not None:
+        print(f"  Creative Timeline: {len(creative_rows)} creatives")
 
 
 if __name__ == "__main__":

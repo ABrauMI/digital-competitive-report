@@ -20,6 +20,12 @@ import openpyxl
 MEDIA_WEEK_TZ = ZoneInfo("America/New_York")
 
 
+def _tuesday_on_or_before(d):
+    """The Tuesday on or before date/datetime `d` (media-week start)."""
+    days_back = (d.isoweekday() - 2) % 7  # Mon=1 ... Sun=7; walk back to Tue
+    return d - timedelta(days=days_back)
+
+
 def current_media_week_iso(now=None):
     """ISO date (YYYY-MM-DD) of the Tuesday on or before `now`.
 
@@ -30,8 +36,7 @@ def current_media_week_iso(now=None):
     """
     if now is None:
         now = datetime.now(MEDIA_WEEK_TZ)
-    days_back = (now.isoweekday() - 2) % 7  # Mon=1 ... Sun=7; walk back to Tue
-    return (now - timedelta(days=days_back)).strftime("%Y-%m-%d")
+    return _tuesday_on_or_before(now).strftime("%Y-%m-%d")
 
 HIERARCHY_COLS = ("party", "atype", "advertiser", "market", "mediatype", "station")
 
@@ -225,3 +230,82 @@ def aggregate(leaf_rows, index_map, n_weeks, top_n=6):
         "top_series": top_series,
         "other_count": len(other_advs),
     }
+
+
+def load_creative_export(path, sheet_name=None):
+    """Read an AdImpact "Topline Creatives" export.
+
+    Returns a list of dicts, one per creative: start, end (datetime),
+    title, advertiser, platform ("CTV" or "Digital" — whichever of the two
+    spend columns is nonzero; a creative is never both in this export),
+    tone, total_spend. Broadcast/Cable columns are read but discarded —
+    this export is meant to be pulled already filtered to Media Type =
+    CTV, Digital, so those columns are $0 anyway, not just irrelevant.
+    """
+    wb = openpyxl.load_workbook(path, data_only=True)
+    ws = wb[sheet_name] if sheet_name else wb[wb.sheetnames[0]]
+
+    header_row_idx = None
+    for row in ws.iter_rows(min_row=1, max_row=min(30, ws.max_row)):
+        if row[0].value == "Start Date":
+            header_row_idx = row[0].row
+            break
+    if header_row_idx is None:
+        raise ValueError(
+            "Could not find the 'Start Date' header row — is this an AdImpact "
+            "Topline Creatives export?"
+        )
+    header = [c.value for c in ws[header_row_idx]]
+    col = {name: i for i, name in enumerate(header)}
+
+    rows = []
+    for r in ws.iter_rows(min_row=header_row_idx + 1, max_row=ws.max_row, values_only=True):
+        start, end, advertiser = r[col["Start Date"]], r[col["End Date"]], r[col["Advertiser"]]
+        if not isinstance(start, datetime) or not isinstance(advertiser, str):
+            continue
+        ctv_spend = _num(r[col["CTV Spend"]])
+        digital_spend = _num(r[col["Digital Spend"]])
+        rows.append(
+            {
+                "start": start,
+                "end": end if isinstance(end, datetime) else start,
+                "title": r[col["Title"]] or "(untitled)",
+                "advertiser": advertiser,
+                "platform": "CTV" if ctv_spend >= digital_spend else "Digital",
+                "tone": r[col["Tone"]],
+                "total_spend": _num(r[col["Total Spend"]]),
+            }
+        )
+    return rows
+
+
+def build_creative_week_axis(creative_rows):
+    """Continuous Tuesday-start weekly axis spanning every creative's flight.
+
+    Returns (week_iso, week_labels) — week_iso for lookups, week_labels
+    ("M/D/YY") for display, both aligned to the same Tuesday->Monday
+    media-week convention as the spending report.
+    """
+    starts = [_tuesday_on_or_before(r["start"]) for r in creative_rows]
+    ends = [_tuesday_on_or_before(r["end"]) for r in creative_rows]
+    first, last = min(starts), max(ends)
+    weeks = []
+    d = first
+    while d <= last:
+        weeks.append(d)
+        d += timedelta(days=7)
+    week_iso = [d.strftime("%Y-%m-%d") for d in weeks]
+    week_labels = [d.strftime("%-m/%-d/%y") for d in weeks]
+    return week_iso, week_labels
+
+
+def creative_active_weeks(creative, week_iso):
+    """Indices into `week_iso` where `creative` overlaps that media week."""
+    start, end = creative["start"], creative["end"]
+    active = []
+    for i, iso in enumerate(week_iso):
+        week_start = datetime.strptime(iso, "%Y-%m-%d")
+        week_end = week_start + timedelta(days=6)
+        if start <= week_end and end >= week_start:
+            active.append(i)
+    return active

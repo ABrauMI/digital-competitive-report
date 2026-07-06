@@ -20,6 +20,8 @@ from openpyxl.drawing.image import Image as XLImage
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
+from . import parse
+
 # GPS Impact Brand Guidelines 2026
 BRAND_NAVY = "323b51"
 BRAND_BLUE = "3d6a91"
@@ -665,13 +667,121 @@ def _write_no_data_week_sheet(wb, target_iso):
     return ws
 
 
+CREATIVE_HEADERS = ["CANDIDATE / COMMITTEE", "CREATIVE", "PLATFORM", "TONE", "TOTAL SPEND", "START DATE", "END DATE"]
+CREATIVE_DATE_FORMAT = "mmm d, yyyy"
+
+
+def _write_creative_timeline_sheet(wb, creative_rows, party_lookup, week_iso, week_labels):
+    """One row per creative, grouped by party then advertiser, with a
+    shaded bar across every media week the creative's flight overlapped.
+    A shaded week means "live at some point that week," not necessarily
+    the full week — flights rarely start or end on a Tuesday.
+    """
+    ws = wb.create_sheet("Creative Timeline")
+    ws.sheet_view.showGridLines = False
+
+    n_weeks = len(week_iso)
+    n_fixed = len(CREATIVE_HEADERS)
+    last_col = n_fixed + n_weeks
+    frozen_cols = n_fixed
+
+    for col in range(1, last_col + 1):
+        ws.cell(1, col).fill = _fill(NAVY)
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=frozen_cols)
+    c = ws.cell(1, 1, "CREATIVE TIMELINE")
+    c.font = Font(name=FONT_NAME, bold=True, size=14, color="FFFFFF")
+    c.alignment = Alignment(horizontal="right", vertical="center", wrap_text=True, indent=1)
+    if last_col > frozen_cols:
+        ws.merge_cells(start_row=1, start_column=frozen_cols + 1, end_row=1, end_column=last_col)
+    ws.row_dimensions[1].height = 49.5
+    if LOGO_FILE.exists():
+        logo = XLImage(str(LOGO_FILE))
+        aspect = logo.width / logo.height
+        logo.height = 34
+        logo.width = 34 * aspect
+        ws.add_image(logo, "A1")
+
+    ws.merge_cells(start_row=2, start_column=1, end_row=2, end_column=last_col)
+    c = ws.cell(2, 1, "A shaded week means the creative was live at some point during that week, not necessarily the full week.")
+    c.font = Font(name=FONT_NAME, italic=True, size=9, color=FOOTER_GRAY)
+
+    header_row = 4
+    for col, text in enumerate(CREATIVE_HEADERS + week_labels, start=1):
+        c = ws.cell(header_row, col, text)
+        c.font = Font(name=FONT_NAME, bold=True, size=9, color="FFFFFF")
+        c.fill = _fill(NAVY)
+        c.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        c.border = _medium_border(HEADER_ACCENT)
+    ws.row_dimensions[header_row].height = 31.5
+
+    widths = {"A": 28, "B": 30, "C": 10, "D": 12, "E": 14, "F": 13, "G": 13}
+    for col_letter, w in widths.items():
+        ws.column_dimensions[col_letter].width = w
+    for i in range(n_weeks):
+        ws.column_dimensions[get_column_letter(n_fixed + 1 + i)].width = 5
+    ws.freeze_panes = f"{get_column_letter(frozen_cols + 1)}{header_row + 1}"
+
+    by_party = {}
+    for cr in creative_rows:
+        party = party_lookup.get(cr["advertiser"])
+        by_party.setdefault(party, {}).setdefault(cr["advertiser"], []).append(cr)
+    ranked_parties = sorted(
+        by_party.items(), key=lambda kv: -sum(cr["total_spend"] for advs in kv[1].values() for cr in advs)
+    )
+
+    row = header_row + 1
+    for party, advertisers in ranked_parties:
+        ramp = _ramp_for(party)
+        ranked_advs = sorted(
+            advertisers.items(), key=lambda kv: -sum(cr["total_spend"] for cr in kv[1])
+        )
+        for adv, creatives in ranked_advs:
+            adv_start = row
+            creatives = sorted(creatives, key=lambda cr: cr["start"])
+            for cr in creatives:
+                font = Font(name=FONT_NAME, size=9, color=TEXT_DARK)
+                ws.cell(row, 1, adv).font = font
+                ws.cell(row, 2, cr["title"]).font = font
+                ws.cell(row, 3, cr["platform"]).font = font
+                ws.cell(row, 3).alignment = Alignment(horizontal="center")
+                ws.cell(row, 4, cr["tone"] or "").font = font
+                e = ws.cell(row, 5, cr["total_spend"])
+                e.number_format = TOTAL_CURRENCY
+                e.font = font
+                for col, dt in ((6, cr["start"]), (7, cr["end"])):
+                    dc = ws.cell(row, col, dt)
+                    dc.number_format = CREATIVE_DATE_FORMAT
+                    dc.font = font
+                for col in range(1, n_fixed + 1):
+                    ws.cell(row, col).border = _thin_border(BORDER_LIGHT)
+                bar_fill = _fill(ramp["adv_total"])
+                for i in parse.creative_active_weeks(cr, week_iso):
+                    bc = ws.cell(row, n_fixed + 1 + i)
+                    bc.fill = bar_fill
+                    bc.border = _thin_border(BORDER_LIGHT)
+                row += 1
+            if row - 1 > adv_start:
+                ws.merge_cells(start_row=adv_start, start_column=1, end_row=row - 1, end_column=1)
+            row += 1  # blank spacer
+
+    ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=last_col)
+    c = ws.cell(row, 1, "Report prepared by GPS Impact  |  Confidential")
+    c.font = Font(name=FONT_NAME, italic=True, size=8, color=FOOTER_GRAY)
+    ws.row_dimensions[row].height = 18
+    return ws
+
+
 def write_excel_report(leaf_rows, index_map, week_labels, output_path, title="DIGITAL COMPETITIVE REPORT",
-                        week_iso=None, this_week_iso=None):
+                        week_iso=None, this_week_iso=None, creative_rows=None):
     """`this_week_iso` is the target Tuesday (YYYY-MM-DD) to show on the
     "This Week" tab — pass `parse.current_media_week_iso()` for "today's"
     media week, or a specific date to pin a historical week. If that date
     isn't present in the export, a placeholder tab is shown instead of
     silently substituting some other week.
+
+    `creative_rows`, if given (from `parse.load_creative_export`), adds a
+    Creative Timeline tab. Party coloring for it comes from `leaf_rows` —
+    the Topline Creatives export has no Party column of its own.
     """
     n_weeks = len(week_labels)
     tree = build_hierarchy(leaf_rows, index_map, n_weeks)
@@ -684,5 +794,9 @@ def write_excel_report(leaf_rows, index_map, week_labels, output_path, title="DI
             _write_this_week_sheet(wb, tree, week_iso, this_idx)
         else:
             _write_no_data_week_sheet(wb, this_week_iso)
+    if creative_rows:
+        party_lookup = {r["advertiser"]: r["party"] for r in leaf_rows}
+        creative_week_iso, creative_week_labels = parse.build_creative_week_axis(creative_rows)
+        _write_creative_timeline_sheet(wb, creative_rows, party_lookup, creative_week_iso, creative_week_labels)
     wb.active = 0
     wb.save(output_path)
