@@ -1,25 +1,16 @@
 # Digital Competitive Report
 
 Turns an AdImpact "Spending Chart" export into a competitive report on who's
-spending what, where, on which platform, week by week. Two output modes:
-
-- **Excel (start here)** — the same flat, spreadsheet-style competitive
-  report GPS Impact already produces for linear TV (Candidate/Committee →
-  Market → Type → Station, weekly spend columns, subtotals, party/grand
-  totals), reapplied to digital spend.
-- **HTML dashboard** — a richer, branded interactive report (charts,
-  sparklines, a written summary) for when the flat table isn't enough.
+spending what, where, on which platform, week by week — the same flat,
+spreadsheet-style competitive report GPS Impact already produces for linear
+TV (Candidate/Committee → Market → Type → Station, weekly spend columns,
+subtotals, party/grand totals), reapplied to digital spend.
 
 ## Quick start
 
 ```bash
 pip install -r requirements.txt
-
-# Flat Excel report — mirrors the linear TV competitive report format
 python generate_excel_report.py --spending path/to/Spending.xlsx --output report.xlsx
-
-# Branded HTML dashboard
-python generate_report.py --spending path/to/Spending.xlsx --output report.html
 ```
 
 Or skip the CLI entirely and run it from Slack — see **Slack app** below.
@@ -34,7 +25,7 @@ In AdMo+ / AdImpact, pull a **Spending Chart** export:
 - Filter to a single race (Race = `<your race>`) and whatever media types
   you want tracked (typically `CTV, Digital`)
 
-Both generators auto-detect the race and media types from the export's
+The generator auto-detects the race and media types from the export's
 header block.
 
 Optionally, also pull a **Topline Creatives** export (Rows: `Creative
@@ -108,20 +99,6 @@ fabricate from spend).
 | `--current-week` | today's media week | Pins the This Week tab to a specific week (`YYYY-MM-DD`, the Tuesday it starts on) |
 | `--creative` | *(none)* | Path to an AdImpact Topline Creatives `.xlsx` export — adds the Creative Timeline tab |
 
-## `generate_report.py` (HTML dashboard)
-
-| Flag | Default | What it does |
-|---|---|---|
-| `--spending` | *(required)* | Path to the AdImpact Spending Chart `.xlsx` |
-| `--output` | `report.html` | Output path |
-| `--top-n` | `6` | How many advertisers get their own line in the "weekly spend by advertiser" chart; everyone else rolls into "All Other Advertisers" |
-| `--title` | derived | Overrides the masthead title |
-| `--race` | from file | Overrides the race label |
-| `--media-types` | from file | Overrides the media types label |
-
-Self-contained — fonts, logo, and data are all inlined, so `report.html` can
-be emailed or dropped into a shared drive as a single file.
-
 ## Slack app
 
 A `/digital-comp` slash command that runs the same pipeline as
@@ -157,46 +134,19 @@ make the x-axis silently non-uniform.
 ## Repo layout
 
 ```
-generate_excel_report.py   CLI entrypoint — flat Excel report
-generate_report.py         CLI entrypoint — HTML dashboard
+generate_excel_report.py   CLI entrypoint
 report/
   parse.py           reads AdImpact exports, forward-fills the pivot, aggregates
   pipeline.py         build_digital_competitive_report() — shared by the CLI and the Slack app
   excel_export.py    writes the flat, spreadsheet-style report (mirrors the linear TV template)
-  colors.py           brand palette + color assignment (platforms, parties, advertisers) — HTML dashboard only
-  build.py            wires parse -> colors -> template -> output html
-  template.html      the HTML dashboard itself (HTML/CSS/vanilla-JS, no build step)
 slack_app/
   app.py               /digital-comp slash command, modal, file intake, Build Report button
   session.py           in-memory session store keyed by thread ts
 assets/
-  fonts/              Figtree + Playfair Display, woff2, embedded at build time (HTML dashboard only)
-  logos/               GPS Impact logo, embedded at build time (HTML dashboard only)
+  logos/               GPS Impact logo, embedded in the report header at build time
 ```
 
-There's no bundler — `template.html` is plain HTML/CSS/JS with a few string
-placeholders (`__PAGE_TITLE__`, `__LOGO_WHITE__`, `/*__FONT_FACES__*/`,
-`/*__DATA_JSON__*/`) that `report/build.py` fills in.
-
-## Color choices (HTML dashboard)
-
-The palette is derived from `GPSImpact_BrandGuidelines_2026`: Navy `#323b51`,
-Blue `#3d6a91`, Red `#de5e4e`, Pale Blue `#bed7d5`. The brand's own blue and
-red are correct for the masthead/logo but read as low-chroma ("grayish") once
-used as chart-series colors, so the chart palette in `report/colors.py` uses
-boosted-saturation variants of the same hues plus a small set of
-brand-adjacent extra hues for platforms that aren't Republican/Democrat.
-
-Every categorical palette here (party colors, platform colors) was run
-through the [dataviz skill](https://github.com/anthropics/skills)'s
-`validate_palette.js` for both light and dark chart surfaces — lightness
-band, chroma floor, CVD (colorblind) separation, and contrast — rather than
-picked by eye. If you add a platform beyond the five validated slots in
-`PLATFORM_PALETTE`, or a party beyond the four in `PARTY_COLORS`, re-run the
-validator on the new set instead of eyeballing a hex value; both fall back to
-a neutral gray for anything beyond what's been validated.
-
-## Color choices (Excel report)
+## Color choices
 
 `report/excel_export.py` mirrors the linear TV report's *layout* (hierarchy,
 merges, rollup shading) but its *colors* come straight from the brand

@@ -4,8 +4,6 @@
 *.xls
 /reports/
 /output/
-report.html
-DigitalCompetitiveReport_*.html
 
 __pycache__/
 *.pyc
