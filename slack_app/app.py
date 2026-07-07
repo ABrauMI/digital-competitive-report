@@ -45,7 +45,7 @@ def _modal_view(channel_id):
         "type": "modal",
         "callback_id": "digital_comp_modal",
         "private_metadata": json.dumps({"channel": channel_id}),
-        "title": {"type": "plain_text", "text": "Digital Competitive Report"},
+        "title": {"type": "plain_text", "text": "Digital Comp Report"},
         "submit": {"type": "plain_text", "text": "Next: upload exports"},
         "close": {"type": "plain_text", "text": "Cancel"},
         "blocks": [
