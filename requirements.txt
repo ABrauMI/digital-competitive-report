@@ -1,3 +1,8 @@
 openpyxl>=3.1
 Pillow>=10.0
 tzdata>=2024.1; sys_platform == "win32"
+
+# Slack app (slack_app/) — not needed for the CLI generators alone
+slack_bolt
+slack_sdk
+requests

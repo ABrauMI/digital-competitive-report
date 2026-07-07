@@ -8,10 +8,8 @@ Usage:
 """
 import argparse
 import sys
-from datetime import datetime
 
-from report import parse
-from report.excel_export import write_excel_report
+from report.pipeline import build_digital_competitive_report
 
 
 def main():
@@ -32,27 +30,15 @@ def main():
     )
     args = p.parse_args()
 
-    week_cols, week_starts, leaf_rows, meta = parse.load_spending_export(args.spending)
-    week_labels_short, week_iso, index_map = parse.build_continuous_week_axis(week_starts)
-    week_labels = [datetime.strptime(iso, "%Y-%m-%d").strftime("%m/%d/%Y") for iso in week_iso]
-
-    title = args.title
-    if not title:
-        race = meta.get("race")
-        title = f"{race.upper()} DIGITAL COMPETITIVE REPORT" if race else "DIGITAL COMPETITIVE REPORT"
-
-    this_week_iso = args.current_week or parse.current_media_week_iso()
-
-    creative_rows = parse.load_creative_export(args.creative) if args.creative else None
-
-    write_excel_report(
-        leaf_rows, index_map, week_labels, args.output, title=title,
-        week_iso=week_iso, this_week_iso=this_week_iso, creative_rows=creative_rows,
+    summary = build_digital_competitive_report(
+        args.spending, args.output, creative_path=args.creative, title=args.title,
+        current_week_iso=args.current_week,
     )
     print(f"Wrote {args.output}")
-    print(f"  This Week tab: {this_week_iso}" + (" (not in export)" if this_week_iso not in week_iso else ""))
-    if creative_rows is not None:
-        print(f"  Creative Timeline: {len(creative_rows)} creatives")
+    note = "" if summary["this_week_in_export"] else " (not in export)"
+    print(f"  This Week tab: {summary['this_week_iso']}{note}")
+    if summary["creative_count"] is not None:
+        print(f"  Creative Timeline: {summary['creative_count']} creatives")
 
 
 if __name__ == "__main__":

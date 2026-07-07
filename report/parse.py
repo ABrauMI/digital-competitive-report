@@ -45,6 +45,31 @@ def _num(v):
     return float(v) if v not in (None, "") else 0.0
 
 
+def classify_export(path):
+    """Peek at an AdImpact export's header row to tell a Spending Chart
+    from a Topline Creatives export without fully parsing either.
+
+    Returns "spending", "creative", or None if it's neither — callers
+    (e.g. the Slack app, which doesn't know which file a user just
+    dropped in) can use this to route the file without asking.
+    """
+    try:
+        wb = openpyxl.load_workbook(path, data_only=True, read_only=True)
+    except Exception:
+        return None
+    try:
+        ws = wb[wb.sheetnames[0]]
+        for row in ws.iter_rows(min_row=1, max_row=30, max_col=1):
+            v = row[0].value
+            if v == "Party":
+                return "spending"
+            if v == "Start Date":
+                return "creative"
+    finally:
+        wb.close()
+    return None
+
+
 def load_spending_export(path, sheet_name=None):
     """Read the raw export and return (week_cols, week_starts, leaf_rows, meta).
 

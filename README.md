@@ -22,6 +22,8 @@ python generate_excel_report.py --spending path/to/Spending.xlsx --output report
 python generate_report.py --spending path/to/Spending.xlsx --output report.html
 ```
 
+Or skip the CLI entirely and run it from Slack — see **Slack app** below.
+
 ## Getting the input file
 
 In AdMo+ / AdImpact, pull a **Spending Chart** export:
@@ -120,6 +122,28 @@ fabricate from spend).
 Self-contained — fonts, logo, and data are all inlined, so `report.html` can
 be emailed or dropped into a shared drive as a single file.
 
+## Slack app
+
+A `/digital-comp` slash command that runs the same pipeline as
+`generate_excel_report.py` without anyone needing Python installed: type
+the command, optionally set a title override in the modal, reply in the
+thread with an AdImpact Spending Chart export (and optionally a Topline
+Creatives export — order doesn't matter, the bot tells them apart by
+their header row), click **Build Report**, get the workbook back in the
+thread. Built the same way as GPS Impact's existing Sample Buy bot
+(`broadcast-buy-optimizer`) — Slack Bolt in Socket Mode, so it needs no
+public URL or webhook, just an outbound connection to Slack.
+
+- **`SLACK_SETUP.md`** — one-time Slack dashboard setup (app creation,
+  Socket Mode, bot scopes, the slash command, event subscriptions);
+  this part can only be done by a human with access to your Slack workspace.
+- **`RAILWAY_DEPLOY.md`** — running it as an always-on Railway worker so it
+  doesn't depend on someone's laptop being open.
+
+The Slack app and the CLI share `report/pipeline.py`, so anything that
+changes report behavior (new columns, styling, tabs) applies to both
+automatically — there's no separate code path to keep in sync.
+
 ## How the parsing works
 
 AdImpact's export is a collapsed pivot table — blank cells mean "same value
@@ -136,11 +160,15 @@ make the x-axis silently non-uniform.
 generate_excel_report.py   CLI entrypoint — flat Excel report
 generate_report.py         CLI entrypoint — HTML dashboard
 report/
-  parse.py           reads the xlsx, forward-fills the pivot, aggregates
+  parse.py           reads AdImpact exports, forward-fills the pivot, aggregates
+  pipeline.py         build_digital_competitive_report() — shared by the CLI and the Slack app
   excel_export.py    writes the flat, spreadsheet-style report (mirrors the linear TV template)
   colors.py           brand palette + color assignment (platforms, parties, advertisers) — HTML dashboard only
   build.py            wires parse -> colors -> template -> output html
   template.html      the HTML dashboard itself (HTML/CSS/vanilla-JS, no build step)
+slack_app/
+  app.py               /digital-comp slash command, modal, file intake, Build Report button
+  session.py           in-memory session store keyed by thread ts
 assets/
   fonts/              Figtree + Playfair Display, woff2, embedded at build time (HTML dashboard only)
   logos/               GPS Impact logo, embedded at build time (HTML dashboard only)
