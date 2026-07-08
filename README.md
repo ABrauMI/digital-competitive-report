@@ -44,6 +44,9 @@ Report opens as the active tab):
   the linear template (navy header, merged hierarchy cells, frozen panes so
   the label columns stay visible while scrolling through weeks).
 - **Market Summary** — per-advertiser market/type totals, no weekly detail.
+  CTV stays collapsed to one line per market, but Digital breaks out each
+  market's platforms (Facebook, Google, ...) the same way the main sheet
+  does, rolling up to a market total, then a Digital total.
 - **This Week** — same hierarchy as the main sheet, but scoped to just the
   current media week, compared against the week before it (spend, $ change,
   % change), with any advertiser/market/platform that spent nothing this

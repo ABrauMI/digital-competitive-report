@@ -425,31 +425,66 @@ def _write_market_summary_sheet(wb, tree, n_weeks):
 
             # Group by media type first (all CTV markets together, all
             # Digital markets together), each with its own type total,
-            # biggest type first.
+            # biggest type first. Keep each market's per-platform stations
+            # around (not just its total) so Digital can break Facebook,
+            # Google, etc. out the same way the main sheet does — CTV stays
+            # collapsed to one line per market, matching the main sheet.
             by_type = {}
             for market, types in markets.items():
                 for mtype, stations in types.items():
-                    total = sum(_sum_lists(stations.values(), n_weeks))
-                    by_type.setdefault(mtype, []).append((market, total))
-            ranked_types = sorted(by_type.items(), key=lambda kv: -sum(t for _, t in kv[1]))
+                    by_type.setdefault(mtype, {})[market] = stations
+            ranked_types = sorted(
+                by_type.items(),
+                key=lambda kv: -sum(sum(_sum_lists(stations.values(), n_weeks)) for stations in kv[1].values()),
+            )
 
-            for mtype, market_totals in ranked_types:
+            for mtype, market_map in ranked_types:
                 c = ws.cell(row, 1, mtype.upper())
                 c.font = Font(name=FONT_NAME, bold=True, size=9, color=TEXT_DARK)
                 row += 1
-                for market, total in sorted(market_totals, key=lambda x: -x[1]):
-                    ws.cell(row, 1, market).font = Font(name=FONT_NAME, size=9, color=TEXT_DARK)
-                    e = ws.cell(row, 2, total)
-                    e.number_format = TOTAL_CURRENCY
-                    e.font = Font(name=FONT_NAME, size=9, color=TEXT_DARK)
-                    row += 1
+                is_ctv = mtype.strip().upper() == "CTV"
+                market_entries = [
+                    (market, sum(_sum_lists(stations.values(), n_weeks)), stations)
+                    for market, stations in market_map.items()
+                ]
+                for market, total, stations in sorted(market_entries, key=lambda x: -x[1]):
+                    if is_ctv:
+                        ws.cell(row, 1, market).font = Font(name=FONT_NAME, size=9, color=TEXT_DARK)
+                        e = ws.cell(row, 2, total)
+                        e.number_format = TOTAL_CURRENCY
+                        e.font = Font(name=FONT_NAME, size=9, color=TEXT_DARK)
+                        row += 1
+                    else:
+                        # Digital: surface the platform breakdown (Facebook,
+                        # Google, ...) under each market, same as the main
+                        # sheet, instead of collapsing straight to a total.
+                        ranked_platforms = sorted(stations.items(), key=lambda kv: -sum(kv[1]))
+                        for platform, weekly in ranked_platforms:
+                            pc = ws.cell(row, 1, platform)
+                            pc.font = Font(name=FONT_NAME, size=9, color=TEXT_DARK)
+                            pc.alignment = Alignment(horizontal="left", indent=1)
+                            pc.fill = _fill(ramp["leaf"])
+                            e = ws.cell(row, 2, sum(weekly))
+                            e.number_format = TOTAL_CURRENCY
+                            e.font = Font(name=FONT_NAME, size=9, color=TEXT_DARK)
+                            e.fill = _fill(ramp["leaf"])
+                            row += 1
+                        c = ws.cell(row, 1, f"{market} Total")
+                        c.font = Font(name=FONT_NAME, bold=True, size=9, color=TEXT_DARK)
+                        c.fill = _fill(ramp["subtotal"])
+                        e = ws.cell(row, 2, total)
+                        e.number_format = TOTAL_CURRENCY
+                        e.font = Font(name=FONT_NAME, bold=True, size=9, color=TEXT_DARK)
+                        e.fill = _fill(ramp["subtotal"])
+                        row += 1
+                type_total = sum(t for _, t, _ in market_entries)
                 c = ws.cell(row, 1, f"{mtype} Total")
                 c.font = Font(name=FONT_NAME, bold=True, size=9, color=TEXT_DARK)
-                c.fill = _fill(ramp["subtotal"])
-                e = ws.cell(row, 2, sum(t for _, t in market_totals))
+                c.fill = _fill(ramp["type_total"])
+                e = ws.cell(row, 2, type_total)
                 e.number_format = TOTAL_CURRENCY
                 e.font = Font(name=FONT_NAME, bold=True, size=9, color=TEXT_DARK)
-                e.fill = _fill(ramp["subtotal"])
+                e.fill = _fill(ramp["type_total"])
                 row += 1
 
             c = ws.cell(row, 1, f"{adv} — Total")
