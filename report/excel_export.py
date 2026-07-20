@@ -151,44 +151,43 @@ def build_hierarchy(leaf_rows, index_map, n_weeks):
     return tree
 
 
-def build_hierarchy_no_market(leaf_rows, n_weeks):
-    """party -> advertiser -> mediatype -> station -> weekly[].
+def build_hierarchy_adhawk(leaf_rows, n_weeks):
+    """party -> advertiser -> platform -> weekly[].
 
-    Same shape as `build_hierarchy` minus the market level, for sources
-    like AdHawk that don't carry a market/DMA column at all. Leaf rows'
-    `weekly` arrays are expected already aligned to a single n_weeks axis
-    (no index_map remap needed — AdHawk doesn't drop $0 weeks the way
-    AdImpact does).
+    No Market level (AdHawk carries no market/DMA data) and no CTV/Digital
+    Type level either — AdHawk's own Digital/CTV split just relabels
+    Facebook and Google as "Digital" alongside CTV, which reads as a
+    redundant grouping once there's no market to nest it under, so
+    platforms sit flat: CTV, Facebook, Google, ... `station` is already the
+    right key for this — "CTV" for CTV rows, the platform name otherwise.
+    Leaf rows' `weekly` arrays are expected already aligned to a single
+    n_weeks axis (no index_map remap needed — AdHawk doesn't drop $0 weeks
+    the way AdImpact does).
     """
     tree = {}
     for r in leaf_rows:
         party_node = tree.setdefault(r["party"], {})
         adv_node = party_node.setdefault(r["advertiser"], {})
-        type_node = adv_node.setdefault(r["mediatype"], {})
-        arr = type_node.setdefault(r["station"], [0.0] * n_weeks)
+        arr = adv_node.setdefault(r["station"], [0.0] * n_weeks)
         for i in range(n_weeks):
             arr[i] += r["weekly"][i]
     return tree
 
 
-def _filter_this_week_no_market(tree, this_idx, prior_idx):
-    """`_filter_this_week`, minus the market level."""
+def _filter_this_week_adhawk(tree, this_idx, prior_idx):
+    """`_filter_this_week`, flattened to party -> advertiser -> platform."""
     out = {}
     for party, advertisers in tree.items():
         adv_out = {}
-        for adv, types in advertisers.items():
-            tp_out = {}
-            for mtype, stations in types.items():
-                st_out = {}
-                for station, weekly in stations.items():
-                    this_val = weekly[this_idx]
-                    prior_val = weekly[prior_idx] if prior_idx is not None and prior_idx >= 0 else 0.0
-                    if this_val > 0:
-                        st_out[station] = (this_val, prior_val)
-                if st_out:
-                    tp_out[mtype] = st_out
-            if tp_out:
-                adv_out[adv] = tp_out
+        for adv, platforms in advertisers.items():
+            pf_out = {}
+            for platform, weekly in platforms.items():
+                this_val = weekly[this_idx]
+                prior_val = weekly[prior_idx] if prior_idx is not None and prior_idx >= 0 else 0.0
+                if this_val > 0:
+                    pf_out[platform] = (this_val, prior_val)
+            if pf_out:
+                adv_out[adv] = pf_out
         if adv_out:
             out[party] = adv_out
     return out
@@ -198,10 +197,13 @@ MAIN_SHEET_HEADERS = ["CANDIDATE / COMMITTEE", "MARKET", "TYPE", "STATION / PLAT
 MAIN_SHEET_WIDTHS = {"A": 28, "B": 24, "C": 10, "D": 30, "E": 14}
 
 # AdHawk has no Market/DMA column at all — it's digital-only spend, and
-# digital doesn't target by broadcast DMA the way linear TV does — so its
-# sheet is one column shallower than AdImpact's.
-ADHAWK_MAIN_SHEET_HEADERS = ["CANDIDATE / COMMITTEE", "TYPE", "PLATFORM", "TOTAL SPEND"]
-ADHAWK_MAIN_SHEET_WIDTHS = {"A": 32, "B": 10, "C": 24, "D": 14}
+# digital doesn't target by broadcast DMA the way linear TV does. It also
+# skips the CTV/Digital Type column: AdHawk's own "Digital" grouping just
+# means "Facebook or Google," which is a redundant label once Market isn't
+# there to nest it under — so its sheet goes straight from advertiser to
+# platform (CTV, Facebook, Google, ...).
+ADHAWK_MAIN_SHEET_HEADERS = ["CANDIDATE / COMMITTEE", "PLATFORM", "TOTAL SPEND"]
+ADHAWK_MAIN_SHEET_WIDTHS = {"A": 34, "B": 26, "C": 14}
 
 
 class _Writer:
@@ -448,51 +450,34 @@ def _write_main_sheet(wb, tree, week_labels, n_weeks, title):
 
 
 def _write_main_sheet_adhawk(wb, tree, week_labels, n_weeks, title):
-    """Same layout as `_write_main_sheet`, minus the Market column — AdHawk
-    has no market/DMA data at all, so the hierarchy goes straight from
-    advertiser to CTV/Digital to platform."""
+    """Same idea as `_write_main_sheet`, minus the Market column (AdHawk has
+    no market/DMA data) and minus the CTV/Digital Type column — platforms
+    (CTV, Facebook, Google, ...) sit flat directly under each advertiser."""
     ws = wb.active
     ws.title = "Competitive Digital Report"
     w = _Writer(ws, n_weeks, week_labels, title, headers=ADHAWK_MAIN_SHEET_HEADERS, col_widths=ADHAWK_MAIN_SHEET_WIDTHS)
 
     parties = sorted(tree.items(), key=lambda kv: -sum(_sum_lists(
-        [s for adv in kv[1].values() for tp in adv.values() for s in tp.values()], n_weeks
+        [w for platforms in kv[1].values() for w in platforms.values()], n_weeks
     )))
 
     for party, advertisers in parties:
         w.set_party(party)
         adv_totals = {
-            adv: _sum_lists([s for tp in types.values() for s in tp.values()], n_weeks)
-            for adv, types in advertisers.items()
+            adv: _sum_lists(platforms.values(), n_weeks)
+            for adv, platforms in advertisers.items()
         }
         ranked_advs = sorted(advertisers.items(), key=lambda kv: -sum(adv_totals[kv[0]]))
 
         party_weekly = _sum_lists(adv_totals.values(), n_weeks)
 
-        for adv, types in ranked_advs:
+        for adv, platforms in ranked_advs:
             adv_start = w.row
             w.write_group_label(1, adv_start, adv)
 
-            ranked_types = sorted(
-                types.items(), key=lambda kv: -sum(sum(weekly) for weekly in kv[1].values()),
-            )
-
-            for mtype, stations in ranked_types:
-                type_start = w.row
-                w.write_group_label(2, type_start, mtype)
-                type_weekly = _sum_lists(stations.values(), n_weeks)
-
-                if mtype.strip().upper() == "CTV":
-                    # Same collapsing as the AdImpact sheet: CTV never
-                    # breaks out by platform, it's just one line.
-                    w.write_leaf(mtype, sum(type_weekly), type_weekly)
-                else:
-                    ranked_stations = sorted(stations.items(), key=lambda kv: -sum(kv[1]))
-                    for station, weekly in ranked_stations:
-                        w.write_leaf(station, sum(weekly), weekly)
-                    w.write_subtotal(f"{mtype} Total", sum(type_weekly), type_weekly)
-                type_end = w.row - 1
-                w.merge_col(2, type_start, type_end)  # TYPE column
+            ranked_platforms = sorted(platforms.items(), key=lambda kv: -sum(kv[1]))
+            for platform, weekly in ranked_platforms:
+                w.write_leaf(platform, sum(weekly), weekly)
 
             w.write_advertiser_total(f"{adv} Total", sum(adv_totals[adv]), adv_totals[adv])
             adv_end = w.row - 1
@@ -503,10 +488,8 @@ def _write_main_sheet_adhawk(wb, tree, week_labels, n_weeks, title):
         w.merge_label_row(w.row - 1)
 
     grand_weekly = _sum_lists(
-        [_sum_lists(
-            [s for adv in advertisers.values() for tp in adv.values() for s in tp.values()],
-            n_weeks,
-        ) for _, advertisers in parties],
+        [_sum_lists([w for platforms in advertisers.values() for w in platforms.values()], n_weeks)
+         for _, advertisers in parties],
         n_weeks,
     )
     w.write_grand_total("GRAND TOTAL", sum(grand_weekly), grand_weekly)
@@ -633,7 +616,7 @@ THIS_WEEK_HEADERS = [
     "THIS WEEK", "PRIOR WEEK", "CHANGE ($)", "CHANGE (%)",
 ]
 THIS_WEEK_HEADERS_ADHAWK = [
-    "CANDIDATE / COMMITTEE", "TYPE", "PLATFORM",
+    "CANDIDATE / COMMITTEE", "PLATFORM",
     "THIS WEEK", "PRIOR WEEK", "CHANGE ($)", "CHANGE (%)",
 ]
 
@@ -812,7 +795,8 @@ def _write_this_week_sheet(wb, tree, week_iso, this_idx):
 
 
 def _write_this_week_sheet_adhawk(wb, tree, week_iso, this_idx):
-    """`_write_this_week_sheet`, minus the Market column."""
+    """`_write_this_week_sheet`, minus the Market column and the CTV/Digital
+    Type column — platforms sit flat directly under each advertiser."""
     ws = wb.create_sheet("This Week")
     ws.sheet_view.showGridLines = False
 
@@ -824,16 +808,15 @@ def _write_this_week_sheet_adhawk(wb, tree, week_iso, this_idx):
     all_this, all_prior = _sum_pairs(
         (weekly[this_idx], weekly[prior_idx] if prior_idx is not None else 0.0)
         for advertisers in tree.values()
-        for types in advertisers.values()
-        for stations in types.values()
-        for weekly in stations.values()
+        for platforms in advertisers.values()
+        for weekly in platforms.values()
     )
     total_advertisers = sum(len(advertisers) for advertisers in tree.values())
 
-    filtered = _filter_this_week_no_market(tree, this_idx, prior_idx)
+    filtered = _filter_this_week_adhawk(tree, this_idx, prior_idx)
     active_advertisers = sum(len(advertisers) for advertisers in filtered.values())
 
-    last_col = 7
+    last_col = 6
     for col in range(1, last_col + 1):
         ws.cell(1, col).fill = _fill(NAVY)
     ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=last_col)
@@ -862,21 +845,21 @@ def _write_this_week_sheet_adhawk(wb, tree, week_iso, this_idx):
         c.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
         c.border = _medium_border(HEADER_ACCENT)
 
-    widths = {"A": 32, "B": 10, "C": 24, "D": 14, "E": 14, "F": 14, "G": 12}
+    widths = {"A": 34, "B": 26, "C": 14, "D": 14, "E": 14, "F": 12}
     for col_letter, width in widths.items():
         ws.column_dimensions[col_letter].width = width
     ws.freeze_panes = f"A{header_row + 1}"
 
     row = header_row + 1
     parties = sorted(filtered.items(), key=lambda kv: -_sum_pairs(
-        (s[0], s[1]) for adv in kv[1].values() for tp in adv.values() for s in tp.values()
+        s for adv in kv[1].values() for s in adv.values()
     )[0])
 
     for party, advertisers in parties:
         ramp = _ramp_for(party)
         adv_totals = {
-            adv: _sum_pairs((s[0], s[1]) for tp in types.values() for s in tp.values())
-            for adv, types in advertisers.items()
+            adv: _sum_pairs(platforms.values())
+            for adv, platforms in advertisers.items()
         }
         ranked_advs = sorted(advertisers.items(), key=lambda kv: -adv_totals[kv[0]][0])
         party_total = _sum_pairs(adv_totals.values())
@@ -884,48 +867,23 @@ def _write_this_week_sheet_adhawk(wb, tree, week_iso, this_idx):
         if not ranked_advs:
             continue
 
-        for adv, types in ranked_advs:
+        for adv, platforms in ranked_advs:
             adv_start = row
             ws.cell(adv_start, 1, adv).font = Font(name=FONT_NAME, bold=True, size=9, color=TEXT_DARK)
             ws.cell(adv_start, 1).alignment = Alignment(vertical="center", wrap_text=True)
 
-            ranked_types = sorted(
-                types.items(),
-                key=lambda kv: -_sum_pairs(kv[1].values())[0],
-            )
-
-            for mtype, stations in ranked_types:
-                type_start = row
-                ws.cell(type_start, 2, mtype).font = Font(name=FONT_NAME, bold=True, size=9, color=TEXT_DARK)
-                ws.cell(type_start, 2).alignment = Alignment(horizontal="center", vertical="center")
-                type_total = _sum_pairs(stations.values())
-
-                if mtype.strip().upper() == "CTV":
-                    row = _write_week_row(
-                        ws, row, 3, mtype, *type_total,
-                        ramp["leaf"], False, TEXT_DARK, _thin_border(BORDER_LIGHT),
-                        value_col=4, last_col=7,
-                    )
-                else:
-                    ranked_stations = sorted(stations.items(), key=lambda kv: -kv[1][0])
-                    for station, (tv, pv) in ranked_stations:
-                        row = _write_week_row(
-                            ws, row, 3, station, tv, pv,
-                            ramp["leaf"], False, TEXT_DARK, _thin_border(BORDER_LIGHT),
-                            value_col=4, last_col=7,
-                        )
-                    row = _write_week_row(
-                        ws, row, 3, f"{mtype} Total", *type_total,
-                        ramp["subtotal"], True, TEXT_DARK, _thin_border(BORDER_MED),
-                        value_col=4, last_col=7,
-                    )
-                if row - 1 > type_start:
-                    ws.merge_cells(start_row=type_start, start_column=2, end_row=row - 1, end_column=2)
+            ranked_platforms = sorted(platforms.items(), key=lambda kv: -kv[1][0])
+            for platform, (tv, pv) in ranked_platforms:
+                row = _write_week_row(
+                    ws, row, 2, platform, tv, pv,
+                    ramp["leaf"], False, TEXT_DARK, _thin_border(BORDER_LIGHT),
+                    value_col=3, last_col=6,
+                )
 
             row = _write_week_row(
-                ws, row, 3, f"{adv} Total", *adv_totals[adv],
+                ws, row, 2, f"{adv} Total", *adv_totals[adv],
                 ramp["adv_total"], True, TEXT_DARK, _medium_border(BORDER_MED),
-                value_col=4, last_col=7,
+                value_col=3, last_col=6,
             )
             if row - 1 > adv_start:
                 ws.merge_cells(start_row=adv_start, start_column=1, end_row=row - 1, end_column=1)
@@ -934,16 +892,16 @@ def _write_this_week_sheet_adhawk(wb, tree, week_iso, this_idx):
         row = _write_week_row(
             ws, row, 1, f"{party.upper()} PARTY TOTAL", *party_total,
             ramp["party_total"], True, "FFFFFF", _medium_border("FFFFFF"), font_size=10,
-            value_col=4, last_col=7,
+            value_col=3, last_col=6,
         )
-        ws.merge_cells(start_row=row - 1, start_column=1, end_row=row - 1, end_column=3)
+        ws.merge_cells(start_row=row - 1, start_column=1, end_row=row - 1, end_column=2)
 
     row = _write_week_row(
         ws, row, 1, "GRAND TOTAL", all_this, all_prior,
         GRAND_FILL, True, "FFFFFF", _medium_border("FFFFFF"), font_size=10,
-        value_col=4, last_col=7,
+        value_col=3, last_col=6,
     )
-    ws.merge_cells(start_row=row - 1, start_column=1, end_row=row - 1, end_column=3)
+    ws.merge_cells(start_row=row - 1, start_column=1, end_row=row - 1, end_column=2)
 
     row += 1
     ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=last_col)
@@ -1123,7 +1081,7 @@ def write_adhawk_report(leaf_rows, week_labels, output_path, title="DIGITAL COMP
     main/This Week sheets both drop the Market column entirely.
     """
     n_weeks = len(week_labels)
-    tree = build_hierarchy_no_market(leaf_rows, n_weeks)
+    tree = build_hierarchy_adhawk(leaf_rows, n_weeks)
     wb = Workbook()
     _write_main_sheet_adhawk(wb, tree, week_labels, n_weeks, title)
     if this_week_iso is not None and week_iso is not None:
