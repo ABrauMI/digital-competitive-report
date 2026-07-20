@@ -1,8 +1,8 @@
 """Shared build logic — the CLI (`generate_excel_report.py`) and the Slack
 app both call this so the two surfaces can't drift apart.
 """
-from . import parse
-from .excel_export import write_excel_report
+from . import parse, parse_adhawk
+from .excel_export import write_adhawk_report, write_excel_report
 
 
 def build_digital_competitive_report(spending_path, output_path, creative_path=None, title=None,
@@ -41,4 +41,38 @@ def build_digital_competitive_report(spending_path, output_path, creative_path=N
         "this_week_iso": this_week_iso,
         "this_week_in_export": this_week_iso in week_iso,
         "creative_count": len(creative_rows) if creative_rows is not None else None,
+    }
+
+
+def build_adhawk_competitive_report(spending_path, output_path, title=None, current_week_iso=None):
+    """`build_digital_competitive_report`'s AdHawk counterpart — no Market
+    Summary tab (AdHawk carries no market/DMA data) and no Creative
+    Timeline (AdHawk doesn't have a Topline Creatives equivalent yet).
+    """
+    week_iso, leaf_rows, meta = parse_adhawk.load_adhawk_export(spending_path)
+    week_labels = [parse.datetime.strptime(iso, "%Y-%m-%d").strftime("%m/%d/%Y") for iso in week_iso]
+
+    if not title:
+        race = meta.get("race")
+        title = f"{race.upper()} DIGITAL COMPETITIVE REPORT" if race else "DIGITAL COMPETITIVE REPORT"
+
+    this_week_iso = current_week_iso or parse.current_media_week_iso()
+
+    write_adhawk_report(
+        leaf_rows, week_labels, output_path, title=title,
+        week_iso=week_iso, this_week_iso=this_week_iso,
+    )
+
+    grand_total = sum(sum(r["weekly"]) for r in leaf_rows)
+    advertisers = {r["advertiser"] for r in leaf_rows}
+
+    return {
+        "title": title,
+        "race": meta.get("race"),
+        "grand_total": grand_total,
+        "advertiser_count": len(advertisers),
+        "n_weeks": len(week_labels),
+        "this_week_iso": this_week_iso,
+        "this_week_in_export": this_week_iso in week_iso,
+        "creative_count": None,
     }

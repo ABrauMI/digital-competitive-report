@@ -7,8 +7,9 @@ import threading
 
 
 class Session:
-    def __init__(self, channel, title_override=None):
+    def __init__(self, channel, source="adimpact", title_override=None):
         self.channel = channel
+        self.source = source  # "adimpact" or "adhawk"
         self.title_override = title_override
         self.spending_path = None
         self.spending_name = None
@@ -29,9 +30,9 @@ class SessionStore:
         self._sessions = {}
         self._lock = threading.Lock()
 
-    def create(self, thread_ts, channel, title_override=None):
+    def create(self, thread_ts, channel, source="adimpact", title_override=None):
         with self._lock:
-            self._sessions[thread_ts] = Session(channel, title_override=title_override)
+            self._sessions[thread_ts] = Session(channel, source=source, title_override=title_override)
         return self._sessions[thread_ts]
 
     def get(self, thread_ts):

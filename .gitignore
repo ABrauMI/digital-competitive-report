@@ -2,6 +2,7 @@
 # intelligence that shouldn't land in version control.
 *.xlsx
 *.xls
+*.csv
 /reports/
 /output/
 
