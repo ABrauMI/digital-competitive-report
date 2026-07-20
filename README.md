@@ -128,10 +128,13 @@ fabricate from spend).
 
 With `--source adhawk`, the workbook has just **Competitive Digital
 Report** and **This Week** — both the same idea as above minus the Market
-column entirely (Candidate/Committee → Type → Platform), since AdHawk has
-no market data to group by. CTV still collapses to one line per advertiser
-the same way; there's no Market Summary tab (nothing to summarize by) and
-no Creative Timeline yet.
+column (AdHawk has no market data to group by) and minus the CTV/Digital
+Type column too (AdHawk's own "Digital" grouping just means Facebook or
+Google, which reads as a redundant label once Market isn't there to nest
+it under). Platforms sit flat under each advertiser instead: Candidate/
+Committee → Platform, one row each for CTV, Facebook, Google, etc. There's
+no Market Summary tab (nothing to summarize by) and no Creative Timeline
+yet.
 
 | Flag | Default | What it does |
 |---|---|---|
